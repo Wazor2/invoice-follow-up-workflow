@@ -3,176 +3,830 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#f7f9fb">
-  <title>Invoice Follow-Up · InvoiceFlow</title>
+  <meta name="theme-color" content="#0a0f1a">
+  <meta name="description" content="AR Copilot — Intelligent overdue invoice resolution system with human-reviewed reminders, payment verification gates, and full audit trail.">
+  <title>AR Copilot · Invoice Follow-Up</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {theme:{extend:{colors:{surface:'#f7f9fb','surface-low':'#f2f4f6','surface-mid':'#eceef0',ink:'#191c1e','ink-muted':'#45464d',outline:'#c6c6cd',brand:'#006591',error:'#ba1a1a','error-soft':'#ffdad6','success':'#18794e','success-soft':'#e8f5ed',warning:'#805b00','warning-soft':'#fff4d6'},fontFamily:{sans:['Inter','system-ui','sans-serif']},boxShadow:{card:'0 1px 8px rgba(0,0,0,.04)'}}}};
-  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.9/dist/cdn.min.js"></script>
   <style>
-    [x-cloak]{display:none!important}html{scroll-behavior:smooth}body{font-feature-settings:"tnum" 1,"ss01" 1}.material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 500,'GRAD' 0,'opsz' 20}button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid #39b8fd;outline-offset:2px}pre{white-space:pre-wrap;word-break:break-word}table{font-variant-numeric:tabular-nums}.scrollbar-thin::-webkit-scrollbar{height:8px;width:8px}.scrollbar-thin::-webkit-scrollbar-thumb{background:#c6c6cd;border-radius:99px}
+    :root {
+      --bg-primary: #0a0f1a;
+      --bg-surface: #111827;
+      --bg-card: #1a2235;
+      --bg-card-hover: #1f2a40;
+      --bg-input: #0f1729;
+      --border: #2a3550;
+      --border-light: #1e293b;
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --accent-blue: #3b82f6;
+      --accent-blue-soft: rgba(59,130,246,.12);
+      --accent-cyan: #06b6d4;
+      --accent-cyan-soft: rgba(6,182,212,.10);
+      --accent-green: #22c55e;
+      --accent-green-soft: rgba(34,197,94,.12);
+      --accent-amber: #f59e0b;
+      --accent-amber-soft: rgba(245,158,11,.12);
+      --accent-red: #ef4444;
+      --accent-red-soft: rgba(239,68,68,.12);
+      --accent-purple: #a855f7;
+      --accent-purple-soft: rgba(168,85,247,.12);
+      --gradient-brand: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%);
+      --gradient-warm: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
+      --shadow-card: 0 1px 3px rgba(0,0,0,.3), 0 0 0 1px rgba(42,53,80,.5);
+      --shadow-lg: 0 4px 24px rgba(0,0,0,.4);
+      --radius: 12px;
+      --radius-sm: 8px;
+      --radius-lg: 16px;
+      --transition: .2s cubic-bezier(.4,0,.2,1);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; font-feature-settings: "tnum" 1, "ss01" 1; -webkit-font-smoothing: antialiased; }
+    [x-cloak] { display: none !important; }
+    .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 20; }
+    button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 2px; }
+    ::selection { background: rgba(59,130,246,.3); }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+    /* Layout */
+    .container { max-width: 1280px; margin: 0 auto; padding: 0 16px; }
+    @media (min-width: 640px) { .container { padding: 0 24px; } }
+
+    /* Header */
+    .header { position: sticky; top: 0; z-index: 50; background: rgba(17,24,39,.85); backdrop-filter: blur(16px) saturate(180%); border-bottom: 1px solid var(--border-light); }
+    .header-inner { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 64px; }
+    .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; letter-spacing: -.02em; color: var(--text-primary); text-decoration: none; }
+    .logo-icon { background: var(--gradient-brand); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 28px; }
+    .logo-tag { font-size: 10px; font-weight: 600; background: var(--accent-blue-soft); color: var(--accent-blue); border-radius: 6px; padding: 2px 8px; margin-left: 4px; letter-spacing: .04em; text-transform: uppercase; }
+
+    /* Nav tabs */
+    .nav { display: none; align-items: center; gap: 2px; }
+    @media (min-width: 768px) { .nav { display: flex; } }
+    .nav-btn { background: none; border: none; color: var(--text-muted); font-size: 13px; font-weight: 500; padding: 8px 14px; border-radius: var(--radius-sm); cursor: pointer; transition: var(--transition); white-space: nowrap; }
+    .nav-btn:hover { color: var(--text-secondary); background: rgba(255,255,255,.04); }
+    .nav-btn[aria-current="page"] { color: var(--text-primary); background: rgba(255,255,255,.08); font-weight: 600; }
+    .nav-mobile { display: flex; gap: 4px; overflow-x: auto; padding: 8px 12px; border-top: 1px solid var(--border-light); }
+    @media (min-width: 768px) { .nav-mobile { display: none; } }
+    .nav-mobile button { font-size: 12px; padding: 6px 12px; flex-shrink: 0; }
+
+    /* Badges & chips */
+    .badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 99px; letter-spacing: .02em; }
+    .badge-blue { background: var(--accent-blue-soft); color: var(--accent-blue); }
+    .badge-green { background: var(--accent-green-soft); color: var(--accent-green); }
+    .badge-amber { background: var(--accent-amber-soft); color: var(--accent-amber); }
+    .badge-red { background: var(--accent-red-soft); color: var(--accent-red); }
+    .badge-purple { background: var(--accent-purple-soft); color: var(--accent-purple); }
+    .badge-muted { background: rgba(100,116,139,.12); color: var(--text-muted); }
+    .badge-cyan { background: var(--accent-cyan-soft); color: var(--accent-cyan); }
+
+    /* Mode indicator */
+    .mode-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 6px 14px; border-radius: 99px; }
+
+    /* Buttons */
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px; font-weight: 600; padding: 10px 18px; border-radius: var(--radius-sm); border: none; cursor: pointer; transition: var(--transition); white-space: nowrap; }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+    .btn-primary { background: var(--gradient-brand); color: white; box-shadow: 0 2px 8px rgba(59,130,246,.3); }
+    .btn-primary:hover:not(:disabled) { box-shadow: 0 4px 16px rgba(59,130,246,.4); transform: translateY(-1px); }
+    .btn-ghost { background: rgba(255,255,255,.06); color: var(--text-primary); border: 1px solid var(--border); }
+    .btn-ghost:hover:not(:disabled) { background: rgba(255,255,255,.1); }
+    .btn-danger { background: var(--accent-red-soft); color: var(--accent-red); }
+    .btn-danger:hover:not(:disabled) { background: rgba(239,68,68,.2); }
+    .btn-sm { padding: 6px 12px; font-size: 12px; }
+    .btn-run { background: var(--gradient-brand); color: white; padding: 8px 20px; border-radius: var(--radius-sm); font-weight: 700; }
+
+    /* Cards */
+    .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-card); overflow: hidden; }
+
+    /* KPI grid */
+    .kpi-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 24px; }
+    @media (min-width: 1024px) { .kpi-grid { grid-template-columns: repeat(4, 1fr); } }
+    .kpi { padding: 20px; display: flex; align-items: center; justify-content: space-between; }
+    .kpi-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--text-muted); }
+    .kpi-value { font-size: 28px; font-weight: 800; margin-top: 4px; letter-spacing: -.02em; }
+    .kpi-icon { width: 48px; height: 48px; border-radius: var(--radius); display: grid; place-items: center; font-size: 22px; }
+
+    /* Tables */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; text-align: left; font-size: 13px; border-collapse: collapse; }
+    thead { background: rgba(255,255,255,.03); }
+    thead th { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--text-muted); padding: 12px 16px; white-space: nowrap; border-bottom: 1px solid var(--border-light); }
+    tbody td { padding: 14px 16px; border-bottom: 1px solid var(--border-light); vertical-align: middle; }
+    tbody tr:hover { background: rgba(255,255,255,.02); }
+    tbody tr:last-child td { border-bottom: none; }
+
+    /* Inputs */
+    .input { width: 100%; background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 13px; padding: 10px 14px; transition: var(--transition); }
+    .input:focus { border-color: var(--accent-blue); box-shadow: 0 0 0 3px rgba(59,130,246,.15); outline: none; }
+    .input::placeholder { color: var(--text-muted); }
+    textarea.input { resize: vertical; line-height: 1.6; }
+    select.input { cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2394a3b8'%3E%3Cpath d='M6 8.825 1.175 4l.7-.7L6 7.425 10.125 3.3l.7.7z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; }
+
+    /* Search */
+    .search-wrap { position: relative; }
+    .search-wrap .material-symbols-outlined { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 18px; color: var(--text-muted); }
+    .search-wrap .input { padding-left: 40px; }
+
+    /* Alerts */
+    .alert { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-radius: var(--radius-sm); font-size: 13px; margin-bottom: 16px; }
+    .alert-error { background: var(--accent-red-soft); color: var(--accent-red); border: 1px solid rgba(239,68,68,.2); }
+    .alert-info { background: var(--accent-blue-soft); color: var(--accent-blue); border: 1px solid rgba(59,130,246,.2); }
+    .alert-success { background: var(--accent-green-soft); color: var(--accent-green); border: 1px solid rgba(34,197,94,.2); }
+    .alert-close { background: none; border: none; font-size: 18px; cursor: pointer; color: inherit; opacity: .7; }
+
+    /* Section */
+    .section-header { margin-bottom: 20px; }
+    .section-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .12em; color: var(--accent-blue); margin-bottom: 4px; }
+    .section-title { font-size: 24px; font-weight: 700; letter-spacing: -.02em; }
+    .section-desc { font-size: 14px; color: var(--text-secondary); margin-top: 4px; }
+
+    /* Draft card */
+    .draft-card { padding: 24px; }
+    .draft-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 4px; }
+    .draft-title { font-size: 16px; font-weight: 700; }
+    .draft-info { font-size: 13px; color: var(--text-secondary); }
+    .draft-reasoning { background: rgba(255,255,255,.03); border-radius: var(--radius-sm); padding: 12px 16px; margin: 16px 0; font-size: 13px; line-height: 1.6; color: var(--text-secondary); border-left: 3px solid var(--accent-blue); }
+    .draft-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; padding-top: 16px; border-top: 1px solid var(--border-light); }
+
+    /* Label */
+    .field-label { display: block; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); margin-bottom: 6px; }
+
+    /* Modal overlay */
+    .overlay { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; background: rgba(0,0,0,.6); backdrop-filter: blur(4px); padding: 16px; }
+    .modal { width: 100%; max-width: 520px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); padding: 24px; }
+    .modal-lg { max-width: 720px; max-height: 90vh; overflow-y: auto; }
+    .modal-title { font-size: 18px; font-weight: 700; }
+    .modal-desc { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
+
+    /* Status dots */
+    .status-dot { width: 8px; height: 8px; border-radius: 99px; display: inline-block; }
+    .dot-green { background: var(--accent-green); box-shadow: 0 0 8px rgba(34,197,94,.4); }
+    .dot-amber { background: var(--accent-amber); box-shadow: 0 0 8px rgba(245,158,11,.4); }
+    .dot-red { background: var(--accent-red); box-shadow: 0 0 8px rgba(239,68,68,.4); }
+
+    /* Audit timeline */
+    .timeline-item { display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border-light); font-size: 13px; }
+    .timeline-item:last-child { border-bottom: none; }
+
+    /* Empty state */
+    .empty { text-align: center; padding: 48px 24px; }
+    .empty-icon { font-size: 40px; color: var(--text-muted); margin-bottom: 8px; }
+    .empty-title { font-weight: 600; margin-top: 8px; }
+    .empty-desc { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+
+    /* Grid helpers */
+    .grid-2 { display: grid; grid-template-columns: 1fr; gap: 16px; }
+    @media (min-width: 768px) { .grid-2 { grid-template-columns: 1fr 1fr; } }
+    .grid-3-1 { display: grid; grid-template-columns: 1fr; gap: 16px; }
+    @media (min-width: 1024px) { .grid-3-1 { grid-template-columns: 2fr 1fr; } }
+
+    /* Utilities */
+    .text-right { text-align: right; }
+    .text-center { text-align: center; }
+    .text-muted { color: var(--text-muted); }
+    .text-secondary { color: var(--text-secondary); }
+    .text-xs { font-size: 11px; }
+    .text-sm { font-size: 13px; }
+    .font-semibold { font-weight: 600; }
+    .font-bold { font-weight: 700; }
+    .font-mono { font-family: 'SF Mono', 'Cascadia Code', monospace; font-size: 12px; }
+    .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px; }
+    .nowrap { white-space: nowrap; }
+    .capitalize { text-transform: capitalize; }
+    .mt-2 { margin-top: 8px; }
+    .mt-4 { margin-top: 16px; }
+    .mt-6 { margin-top: 24px; }
+    .mb-2 { margin-bottom: 8px; }
+    .mb-4 { margin-bottom: 16px; }
+    .gap-2 { gap: 8px; }
+    .gap-3 { gap: 12px; }
+    .flex { display: flex; }
+    .flex-wrap { flex-wrap: wrap; }
+    .items-center { align-items: center; }
+    .justify-between { justify-content: space-between; }
+    .space-y-4 > * + * { margin-top: 16px; }
+    .pre-wrap { white-space: pre-wrap; word-break: break-word; }
+    .hidden { display: none; }
+
+    /* Glow animation */
+    @keyframes pulse-glow { 0%,100% { box-shadow: 0 0 8px rgba(59,130,246,.2); } 50% { box-shadow: 0 0 20px rgba(59,130,246,.4); } }
+    .glow { animation: pulse-glow 2s ease-in-out infinite; }
+
+    /* Spin */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spin { animation: spin .8s linear infinite; }
+
+    /* Footer */
+    .footer { border-top: 1px solid var(--border-light); padding: 20px 0; text-align: center; font-size: 12px; color: var(--text-muted); margin-top: 32px; }
   </style>
 </head>
-<body class="min-h-screen bg-surface font-sans text-ink" x-data="arWorkflowApp()" x-init="init()" @keydown.escape.window="showApproveModal=false; selectedAudit=null">
-  <header class="sticky top-0 z-40 border-b border-outline/50 bg-white/90 shadow-card backdrop-blur-xl">
-    <div class="mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-      <div class="flex items-center gap-5">
-        <a href="#top" class="flex items-center gap-2 font-semibold tracking-tight text-ink" aria-label="InvoiceFlow dashboard">
-          <span class="material-symbols-outlined text-brand">receipt_long</span><span>InvoiceFlow</span>
+<body x-data="arCopilot()" x-init="init()" @keydown.escape.window="showApproveModal=false; selectedAudit=null; selectedCase=null">
+
+  <!-- Header -->
+  <header class="header">
+    <div class="container header-inner">
+      <div class="flex items-center gap-3" style="gap:20px">
+        <a href="#top" class="logo" aria-label="AR Copilot dashboard">
+          <span class="material-symbols-outlined logo-icon">receipt_long</span>
+          <span>AR Copilot</span>
+          <span class="logo-tag">MVP</span>
         </a>
-        <nav class="hidden items-center gap-1 md:flex" aria-label="Main navigation">
-          <template x-for="tab in tabs" :key="tab.id"><button type="button" @click="activeTab=tab.id" :aria-current="activeTab===tab.id?'page':null" :class="activeTab===tab.id?'bg-surface-mid text-ink font-semibold':'text-ink-muted hover:bg-surface-low'" class="rounded-lg px-3 py-2 text-sm transition" x-text="tab.label"></button></template>
+        <nav class="nav" aria-label="Main navigation">
+          <template x-for="tab in tabs" :key="tab.id">
+            <button type="button" class="nav-btn" @click="activeTab=tab.id" :aria-current="activeTab===tab.id?'page':null" x-text="tab.label"></button>
+          </template>
         </nav>
       </div>
-      <div class="flex items-center gap-2 sm:gap-3">
-        <span :class="!health.ok?'bg-surface-mid text-ink-muted':(health.mail_mode==='gmail'?'bg-warning-soft text-warning':'bg-success-soft text-success')" class="hidden items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold sm:inline-flex">
-          <span class="material-symbols-outlined text-[16px]">mail</span><span x-text="!health.ok?'Mode unavailable':(health.mail_mode==='gmail'?'Live Gmail':'Dry run')">Loading</span>
+      <div class="flex items-center gap-3">
+        <span class="mode-chip" :class="!health.ok?'badge-muted':(health.mail_mode==='gmail'||health.mail_mode==='live'?'badge-amber':'badge-green')">
+          <span class="status-dot" :class="!health.ok?'':(health.mail_mode==='gmail'||health.mail_mode==='live'?'dot-amber':'dot-green')"></span>
+          <span x-text="!health.ok?'Offline':(health.mail_mode==='gmail'||health.mail_mode==='live'?'Live':'Dry run')"></span>
         </span>
-        <button type="button" @click="runCycle()" :disabled="isRunningCycle||!health.ok" class="inline-flex items-center gap-2 rounded-lg bg-ink px-3 py-2 text-sm font-semibold text-white transition hover:bg-brand disabled:cursor-wait disabled:opacity-60 sm:px-4">
-          <span class="material-symbols-outlined text-[18px]" :class="isRunningCycle?'animate-spin':''">play_arrow</span><span class="hidden sm:inline" x-text="isRunningCycle?'Running…':'Run cycle'"></span><span class="sm:hidden" x-text="isRunningCycle?'…':'Run'"></span>
+        <button type="button" @click="runCycle()" :disabled="isRunningCycle||!health.ok" class="btn btn-run">
+          <span class="material-symbols-outlined" :class="isRunningCycle?'spin':''" style="font-size:18px">play_arrow</span>
+          <span x-text="isRunningCycle?'Running…':'Run cycle'"></span>
         </button>
       </div>
     </div>
-    <nav class="flex gap-1 overflow-x-auto border-t border-outline/30 px-3 py-2 md:hidden" aria-label="Mobile navigation">
-      <template x-for="tab in tabs" :key="'mobile-'+tab.id"><button type="button" @click="activeTab=tab.id" :class="activeTab===tab.id?'bg-surface-mid text-ink font-semibold':'text-ink-muted'" class="shrink-0 rounded-lg px-3 py-2 text-xs" x-text="tab.label"></button></template>
-      <span class="ml-auto self-center whitespace-nowrap text-[11px] font-semibold" :class="!health.ok?'text-ink-muted':(health.mail_mode==='gmail'?'text-warning':'text-success')" x-text="!health.ok?'Mode unavailable':(health.mail_mode==='gmail'?'Live Gmail':'Dry run')"></span>
+    <nav class="nav-mobile" aria-label="Mobile navigation">
+      <template x-for="tab in tabs" :key="'m-'+tab.id">
+        <button type="button" class="nav-btn" :class="activeTab===tab.id?'badge-blue':''" @click="activeTab=tab.id" x-text="tab.label"></button>
+      </template>
     </nav>
   </header>
 
-  <main id="top" class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-    <div class="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+  <!-- Main -->
+  <main id="top" class="container" style="padding-top:24px; padding-bottom:24px;">
+
+    <!-- KPI Cards -->
+    <div class="kpi-grid">
       <template x-for="stat in kpiCards" :key="stat.label">
-        <article class="flex items-center justify-between rounded-xl border border-outline/40 bg-white p-4 shadow-card sm:p-5">
-          <div><div class="text-[11px] font-semibold uppercase tracking-wider text-ink-muted" x-text="stat.label"></div><div class="mt-1 text-3xl font-semibold tracking-tight" x-text="stat.value"></div></div>
-          <div :class="stat.tone" class="grid h-10 w-10 place-items-center rounded-xl sm:h-12 sm:w-12"><span class="material-symbols-outlined" x-text="stat.icon"></span></div>
+        <article class="card kpi">
+          <div>
+            <div class="kpi-label" x-text="stat.label"></div>
+            <div class="kpi-value" x-text="stat.value"></div>
+          </div>
+          <div class="kpi-icon" :style="'background:'+stat.bg+';color:'+stat.color">
+            <span class="material-symbols-outlined" x-text="stat.icon"></span>
+          </div>
         </article>
       </template>
     </div>
 
-    <div class="mb-5 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-      <div><p class="mb-1 text-xs font-semibold uppercase tracking-[.14em] text-brand">Accounts receivable</p><h1 class="text-2xl font-semibold tracking-tight sm:text-3xl">Invoice follow-up</h1><p class="mt-1 text-sm text-ink-muted">Human-reviewed reminders, with payment rechecks before any send.</p></div>
+    <!-- Section header -->
+    <div class="section-header flex flex-wrap justify-between items-center gap-3">
+      <div>
+        <p class="section-label">Accounts Receivable</p>
+        <h1 class="section-title">Invoice Follow-Up</h1>
+        <p class="section-desc">Human-reviewed reminders with payment verification gates.</p>
+      </div>
       <div class="flex items-center gap-2">
-        <span class="hidden text-xs text-ink-muted lg:inline" x-text="health.ollama_model ? 'Local model · '+health.ollama_model : 'Local model status unavailable'"></span>
-        <button type="button" @click="fetchData()" :disabled="loading" class="inline-flex items-center gap-1.5 rounded-lg border border-outline bg-white px-3 py-2 text-sm font-medium hover:bg-surface-low disabled:opacity-50"><span class="material-symbols-outlined text-[18px]" :class="loading?'animate-spin':''">refresh</span><span>Refresh</span></button>
+        <span class="text-xs text-muted" x-text="health.ollama_model ? 'Model: '+health.ollama_model : ''"></span>
+        <button type="button" @click="fetchData()" :disabled="loading" class="btn btn-ghost btn-sm">
+          <span class="material-symbols-outlined" :class="loading?'spin':''" style="font-size:16px">refresh</span>
+          <span>Refresh</span>
+        </button>
       </div>
     </div>
 
-    <div x-cloak x-show="errorMessage" role="alert" class="mb-5 flex items-start justify-between gap-3 rounded-lg border border-error/20 bg-error-soft px-4 py-3 text-sm text-error"><div class="flex gap-2"><span class="material-symbols-outlined text-[20px]">error</span><span x-text="errorMessage"></span></div><button type="button" @click="errorMessage=''" aria-label="Dismiss error" class="text-lg font-bold">×</button></div>
-    <div x-cloak x-show="notice" role="status" aria-live="polite" class="mb-5 flex items-center justify-between gap-3 rounded-lg border px-4 py-3 text-sm" :class="noticeTone==='error'?'border-error/20 bg-error-soft text-error':'border-brand/20 bg-white text-ink'"><span x-text="notice"></span><button type="button" @click="notice=''" aria-label="Dismiss message" class="text-lg">×</button></div>
-
-    <div class="mb-5 flex gap-1 overflow-x-auto border-b border-outline/50" role="tablist" aria-label="Dashboard sections">
-      <template x-for="tab in tabs" :key="'section-'+tab.id"><button type="button" role="tab" :aria-selected="activeTab===tab.id" @click="activeTab=tab.id" :class="activeTab===tab.id?'border-ink text-ink font-semibold':'border-transparent text-ink-muted hover:text-ink'" class="shrink-0 border-b-2 px-3 py-3 text-sm transition" x-text="tab.label"></button></template>
+    <!-- Alerts -->
+    <div x-cloak x-show="errorMessage" class="alert alert-error">
+      <div class="flex items-center gap-2">
+        <span class="material-symbols-outlined" style="font-size:18px">error</span>
+        <span x-text="errorMessage"></span>
+      </div>
+      <button type="button" @click="errorMessage=''" class="alert-close">×</button>
+    </div>
+    <div x-cloak x-show="notice" class="alert" :class="noticeTone==='error'?'alert-error':'alert-info'">
+      <span x-text="notice"></span>
+      <button type="button" @click="notice=''" class="alert-close">×</button>
     </div>
 
-    <!-- Overview -->
+    <!-- Tab bar (desktop) -->
+    <div class="mb-4" style="display:flex; gap:4px; overflow-x:auto; border-bottom:1px solid var(--border-light); padding-bottom:4px;" role="tablist">
+      <template x-for="tab in tabs" :key="'tb-'+tab.id">
+        <button type="button" role="tab" class="nav-btn" :aria-selected="activeTab===tab.id" @click="activeTab=tab.id" :style="activeTab===tab.id?'color:var(--text-primary);border-bottom:2px solid var(--accent-blue)':'border-bottom:2px solid transparent'" x-text="tab.label"></button>
+      </template>
+    </div>
+
+    <!-- ═══════════════════ OVERVIEW ═══════════════════ -->
     <section x-show="activeTab==='overview'" aria-label="Overview">
-      <div class="grid gap-4 lg:grid-cols-3">
-        <article class="rounded-xl border border-outline/40 bg-white p-5 shadow-card lg:col-span-2 sm:p-6">
-          <div class="flex flex-wrap items-start justify-between gap-3"><div><h2 class="text-lg font-semibold">Workflow health</h2><p class="mt-1 text-sm text-ink-muted">Current service configuration and review workload.</p></div><span class="rounded-full px-3 py-1 text-xs font-semibold" :class="health.mail_mode==='gmail'?'bg-warning-soft text-warning':'bg-success-soft text-success'" x-text="health.mail_mode==='gmail'?'Gmail send enabled':'Dry-run — no external email will be sent'"></span></div>
-          <div class="mt-5 grid gap-3 sm:grid-cols-2">
-            <div class="rounded-lg bg-surface-low p-4"><div class="text-xs font-medium text-ink-muted">Email delivery</div><div class="mt-1 flex items-center gap-2 font-semibold"><span class="h-2.5 w-2.5 rounded-full" :class="health.mail_mode==='gmail'?'bg-warning':'bg-success'"></span><span x-text="health.mail_mode==='gmail'?'Live Gmail API':'Dry run enabled'"></span></div></div>
-            <div class="rounded-lg bg-surface-low p-4"><div class="text-xs font-medium text-ink-muted">Local language model</div><div class="mt-1 font-semibold" x-text="health.ollama_model || 'Unavailable / fallback active'"></div></div>
+      <div class="grid-3-1">
+        <article class="card" style="padding:24px">
+          <div class="flex flex-wrap justify-between items-center gap-3">
+            <div>
+              <h2 class="font-bold" style="font-size:17px">Workflow Health</h2>
+              <p class="text-sm text-secondary mt-2">Service configuration and system status.</p>
+            </div>
+            <span class="badge" :class="health.mail_mode==='gmail'||health.mail_mode==='live'?'badge-amber':'badge-green'" x-text="health.mail_mode==='gmail'||health.mail_mode==='live'?'Live email enabled':'Dry-run mode'"></span>
           </div>
-          <p class="mt-4 text-xs leading-5 text-ink-muted">Each approval rechecks invoice status immediately before sending. A paid invoice is automatically canceled rather than followed up.</p>
+          <div class="grid-2 mt-4">
+            <div style="background:rgba(255,255,255,.03);border-radius:var(--radius-sm);padding:16px">
+              <div class="text-xs text-muted font-semibold">Email delivery</div>
+              <div class="mt-2 flex items-center gap-2 font-semibold">
+                <span class="status-dot" :class="health.mail_mode==='gmail'||health.mail_mode==='live'?'dot-amber':'dot-green'"></span>
+                <span x-text="health.mail_mode==='gmail'||health.mail_mode==='live'?'Live Gmail API':'Dry run'"></span>
+              </div>
+            </div>
+            <div style="background:rgba(255,255,255,.03);border-radius:var(--radius-sm);padding:16px">
+              <div class="text-xs text-muted font-semibold">Local language model</div>
+              <div class="mt-2 font-semibold" x-text="health.ollama_model || 'Fallback active'"></div>
+            </div>
+          </div>
+          <p class="text-xs text-muted mt-4" style="line-height:1.6">Each approval rechecks invoice payment status immediately before sending. A paid invoice is automatically canceled rather than followed up. Payment verification gates run before draft creation (Gate A) and before send (Gate B).</p>
         </article>
-        <article class="flex flex-col justify-between rounded-xl border border-outline/40 bg-white p-5 shadow-card sm:p-6">
-          <div><span class="material-symbols-outlined text-brand">task_alt</span><h2 class="mt-2 text-lg font-semibold">Review queue</h2><p class="mt-1 text-sm text-ink-muted">Inspect drafts before taking action. Nothing is emailed until you approve.</p></div>
-          <button type="button" @click="activeTab='drafts'" class="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-ink px-4 py-3 text-sm font-semibold text-white hover:bg-brand"><span>Open approval queue</span><span class="material-symbols-outlined text-[18px]">arrow_forward</span></button>
+        <article class="card" style="padding:24px;display:flex;flex-direction:column;justify-content:space-between">
+          <div>
+            <span class="material-symbols-outlined" style="color:var(--accent-blue)">task_alt</span>
+            <h2 class="font-bold mt-2" style="font-size:17px">Review Queue</h2>
+            <p class="text-sm text-secondary mt-2">Inspect drafts before taking action. Nothing is emailed until you approve.</p>
+          </div>
+          <button type="button" @click="activeTab='drafts'" class="btn btn-primary mt-4" style="width:100%">
+            <span>Open approval queue</span>
+            <span class="material-symbols-outlined" style="font-size:16px">arrow_forward</span>
+          </button>
         </article>
       </div>
-      <article class="mt-4 overflow-hidden rounded-xl border border-outline/40 bg-white shadow-card">
-        <div class="flex items-center justify-between border-b border-outline/40 px-4 py-4 sm:px-5"><div><h2 class="font-semibold">Overdue invoices</h2><p class="mt-0.5 text-xs text-ink-muted">Open invoices that need follow-up.</p></div><button type="button" @click="activeTab='invoices'" class="text-sm font-medium text-brand hover:underline">View all</button></div>
-        <div class="scrollbar-thin overflow-x-auto"><table class="w-full min-w-[760px] text-left text-sm"><thead class="bg-surface-low text-[11px] uppercase tracking-wider text-ink-muted"><tr><th class="px-4 py-3">Invoice</th><th class="px-4 py-3">Client</th><th class="px-4 py-3 text-right">Amount</th><th class="px-4 py-3">Due date</th><th class="px-4 py-3 text-right">Overdue</th><th class="px-4 py-3">Priority</th></tr></thead><tbody class="divide-y divide-outline/30"><template x-for="inv in overdueInvoices.slice(0,5)" :key="'ov-'+inv.invoice_id"><tr class="hover:bg-surface-low/60"><td class="whitespace-nowrap px-4 py-3 font-medium" x-text="inv.invoice_id"></td><td class="px-4 py-3"><div x-text="inv.name"></div><div class="text-xs text-ink-muted" x-text="inv.email||'Missing email'"></div></td><td class="whitespace-nowrap px-4 py-3 text-right" x-text="formatINR(inv.amount)"></td><td class="whitespace-nowrap px-4 py-3 text-ink-muted" x-text="inv.due_date"></td><td class="px-4 py-3 text-right" x-text="inv.days_overdue+' days'"></td><td class="px-4 py-3"><span x-show="priorityForInvoice(inv.invoice_id)" :class="priorityClass(priorityForInvoice(inv.invoice_id))" class="rounded-full px-2.5 py-1 text-xs font-semibold capitalize" x-text="priorityForInvoice(inv.invoice_id)"></span><span x-show="!priorityForInvoice(inv.invoice_id)" class="text-xs text-ink-muted">Not prioritized</span></td></tr></template><tr x-show="overdueInvoices.length===0"><td colspan="6" class="px-4 py-10 text-center text-sm text-ink-muted">No overdue invoices. Refresh or run a workflow cycle to check again.</td></tr></tbody></table></div>
+
+      <!-- Overdue invoices preview -->
+      <article class="card mt-4">
+        <div class="flex justify-between items-center" style="padding:16px 20px;border-bottom:1px solid var(--border-light)">
+          <div>
+            <h2 class="font-semibold">Overdue Invoices</h2>
+            <p class="text-xs text-muted mt-2">Open invoices that need follow-up.</p>
+          </div>
+          <button type="button" @click="activeTab='invoices'" class="text-sm font-semibold" style="color:var(--accent-blue);background:none;border:none;cursor:pointer">View all →</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Invoice</th><th>Client</th><th class="text-right">Amount</th><th>Due date</th><th class="text-right">Overdue</th><th>Priority</th></tr></thead>
+            <tbody>
+              <template x-for="inv in overdueInvoices.slice(0,5)" :key="'ov-'+inv.invoice_id">
+                <tr>
+                  <td class="nowrap font-semibold" x-text="inv.invoice_id"></td>
+                  <td><div x-text="inv.name"></div><div class="text-xs text-muted" x-text="inv.email||'Missing email'"></div></td>
+                  <td class="nowrap text-right" x-text="formatINR(inv.outstanding_amount||inv.amount)"></td>
+                  <td class="nowrap text-muted" x-text="inv.due_date"></td>
+                  <td class="text-right" x-text="inv.days_overdue+' days'"></td>
+                  <td><span x-show="priorityForInvoice(inv.invoice_id)" :class="priorityClass(priorityForInvoice(inv.invoice_id))" class="badge capitalize" x-text="priorityForInvoice(inv.invoice_id)"></span><span x-show="!priorityForInvoice(inv.invoice_id)" class="text-xs text-muted">—</span></td>
+                </tr>
+              </template>
+              <tr x-show="overdueInvoices.length===0"><td colspan="6" class="empty"><span class="empty-icon material-symbols-outlined">check_circle</span><p class="empty-title">No overdue invoices</p><p class="empty-desc">Run a cycle to check.</p></td></tr>
+            </tbody>
+          </table>
+        </div>
       </article>
-      <article class="mt-4 rounded-xl border border-outline/40 bg-white p-4 shadow-card sm:p-5"><div class="flex items-center justify-between"><div><h2 class="font-semibold">Recent audit activity</h2><p class="mt-0.5 text-xs text-ink-muted">System and human actions.</p></div><button type="button" @click="activeTab='audit'" class="text-sm font-medium text-brand hover:underline">View audit trail</button></div><div class="mt-3 divide-y divide-outline/30"><template x-for="item in auditLogs.slice(0,4)" :key="'recent-'+item.id"><div class="flex flex-wrap items-center justify-between gap-2 py-2.5 text-sm"><span class="font-medium" x-text="item.action"></span><span class="text-xs text-ink-muted" x-text="formatDate(item.timestamp)+' · '+item.actor"></span></div></template><p x-show="auditLogs.length===0" class="py-4 text-sm text-ink-muted">No audit events recorded yet.</p></div></article>
+
+      <!-- Recent audit -->
+      <article class="card mt-4" style="padding:20px">
+        <div class="flex justify-between items-center">
+          <div><h2 class="font-semibold">Recent Activity</h2><p class="text-xs text-muted mt-2">System and human actions.</p></div>
+          <button type="button" @click="activeTab='audit'" class="text-sm font-semibold" style="color:var(--accent-blue);background:none;border:none;cursor:pointer">View trail →</button>
+        </div>
+        <div class="mt-4 space-y-4" style="margin-top:12px">
+          <template x-for="item in auditLogs.slice(0,5)" :key="'recent-'+item.id">
+            <div class="timeline-item">
+              <span class="font-semibold nowrap" x-text="item.action"></span>
+              <span class="text-xs text-muted" style="margin-left:auto" x-text="formatDate(item.timestamp)+' · '+item.actor"></span>
+            </div>
+          </template>
+          <p x-show="auditLogs.length===0" class="text-sm text-muted" style="padding:12px 0">No audit events yet.</p>
+        </div>
+      </article>
     </section>
 
-    <!-- Invoices -->
+    <!-- ═══════════════════ INVOICES ═══════════════════ -->
     <section x-show="activeTab==='invoices'" aria-label="Invoices">
-      <div class="mb-4 flex flex-col gap-3 rounded-xl border border-outline/40 bg-white p-4 shadow-card sm:flex-row sm:items-center sm:justify-between">
-        <label class="relative block w-full sm:max-w-sm"><span class="sr-only">Search invoices</span><span class="material-symbols-outlined absolute left-3 top-2.5 text-[19px] text-ink-muted">search</span><input type="search" x-model="invoiceSearch" placeholder="Search client, invoice, email…" class="w-full rounded-lg border border-outline/60 bg-surface-low py-2 pl-10 pr-3 text-sm placeholder:text-ink-muted/70"></label>
-        <div class="flex items-center gap-2"><label for="invoice-filter" class="text-xs font-medium text-ink-muted">Status</label><select id="invoice-filter" x-model="invoiceStatusFilter" class="rounded-lg border border-outline/60 bg-white px-3 py-2 text-sm"><option value="">All invoices</option><option value="OVERDUE">Overdue</option><option value="PENDING">Pending</option><option value="PAID">Paid</option><option value="FOLLOWED_UP">Followed up</option></select><span class="whitespace-nowrap text-xs text-ink-muted" x-text="filteredInvoices.length+' results'"></span></div>
+      <div class="card mb-4" style="padding:16px">
+        <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between">
+          <div class="search-wrap" style="flex:1;min-width:240px;max-width:400px">
+            <span class="material-symbols-outlined">search</span>
+            <input type="search" x-model="invoiceSearch" placeholder="Search client, invoice, email…" class="input">
+          </div>
+          <div class="flex items-center gap-2">
+            <label for="inv-filter" class="text-xs text-muted font-semibold">Status</label>
+            <select id="inv-filter" x-model="invoiceStatusFilter" class="input" style="width:auto;min-width:140px">
+              <option value="">All invoices</option>
+              <option value="OVERDUE">Overdue</option>
+              <option value="PENDING">Pending</option>
+              <option value="PAID">Paid</option>
+              <option value="FOLLOWED_UP">Followed up</option>
+            </select>
+            <span class="text-xs text-muted nowrap" x-text="filteredInvoices.length+' results'"></span>
+          </div>
+        </div>
       </div>
-      <div class="overflow-hidden rounded-xl border border-outline/40 bg-white shadow-card"><div class="scrollbar-thin overflow-x-auto"><table class="w-full min-w-[900px] text-left text-sm"><thead class="bg-surface-low text-[11px] uppercase tracking-wider text-ink-muted"><tr><th class="px-4 py-3">Invoice</th><th class="px-4 py-3">Client</th><th class="px-4 py-3">Contact</th><th class="px-4 py-3 text-right">Amount (INR)</th><th class="px-4 py-3">Due date</th><th class="px-4 py-3 text-right">Days overdue</th><th class="px-4 py-3">Priority</th><th class="px-4 py-3">Status</th></tr></thead><tbody class="divide-y divide-outline/30"><template x-for="inv in filteredInvoices" :key="inv.invoice_id"><tr class="hover:bg-surface-low/50"><td class="whitespace-nowrap px-4 py-3 font-semibold" x-text="inv.invoice_id"></td><td class="px-4 py-3" x-text="inv.name"></td><td class="px-4 py-3" :class="inv.email?'text-ink-muted':'font-semibold text-error'" x-text="inv.email||'Missing email'"></td><td class="whitespace-nowrap px-4 py-3 text-right font-medium" x-text="formatINR(inv.amount)"></td><td class="whitespace-nowrap px-4 py-3 text-ink-muted" x-text="inv.due_date"></td><td class="px-4 py-3 text-right" x-text="inv.days_overdue>0?inv.days_overdue+' days':'—'"></td><td class="px-4 py-3"><span x-show="priorityForInvoice(inv.invoice_id)" :class="priorityClass(priorityForInvoice(inv.invoice_id))" class="rounded-full px-2.5 py-1 text-xs font-semibold capitalize" x-text="priorityForInvoice(inv.invoice_id)"></span><span x-show="!priorityForInvoice(inv.invoice_id)" class="text-xs text-ink-muted">—</span></td><td class="px-4 py-3"><span :class="statusClass(inv.status)" class="rounded-full px-2.5 py-1 text-[11px] font-semibold" x-text="inv.status.replaceAll('_',' ')"></span></td></tr></template><tr x-show="filteredInvoices.length===0"><td colspan="8" class="px-4 py-12 text-center text-sm text-ink-muted" x-text="loading?'Loading invoices…':'No invoices match your filters.'"></td></tr></tbody></table></div></div>
+      <div class="card">
+        <div class="table-wrap">
+          <table style="min-width:900px">
+            <thead><tr><th>Invoice</th><th>Client</th><th>Contact</th><th class="text-right">Amount</th><th class="text-right">Outstanding</th><th>Due</th><th class="text-right">Overdue</th><th>Priority</th><th>Status</th><th>Payment</th></tr></thead>
+            <tbody>
+              <template x-for="inv in filteredInvoices" :key="inv.invoice_id">
+                <tr>
+                  <td class="nowrap font-semibold" x-text="inv.invoice_id"></td>
+                  <td x-text="inv.name"></td>
+                  <td :style="inv.email?'color:var(--text-muted)':'color:var(--accent-red);font-weight:600'" x-text="inv.email||'Missing'"></td>
+                  <td class="nowrap text-right font-semibold" x-text="formatINR(inv.amount)"></td>
+                  <td class="nowrap text-right" x-text="formatINR(inv.outstanding_amount)"></td>
+                  <td class="nowrap text-muted" x-text="inv.due_date"></td>
+                  <td class="text-right" x-text="inv.days_overdue>0?inv.days_overdue+' d':'—'"></td>
+                  <td><span x-show="priorityForInvoice(inv.invoice_id)" :class="priorityClass(priorityForInvoice(inv.invoice_id))" class="badge capitalize" x-text="priorityForInvoice(inv.invoice_id)"></span><span x-show="!priorityForInvoice(inv.invoice_id)" class="text-xs text-muted">—</span></td>
+                  <td><span :class="statusClass(inv.status)" class="badge" x-text="inv.status.replaceAll('_',' ')"></span></td>
+                  <td><span :class="paymentBadge(inv.payment_status)" class="badge text-xs" x-text="(inv.payment_status||'UNPAID').replaceAll('_',' ')"></span></td>
+                </tr>
+              </template>
+              <tr x-show="filteredInvoices.length===0"><td colspan="10" class="empty"><p class="empty-desc" x-text="loading?'Loading…':'No matches.'"></p></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </section>
 
-    <!-- Draft queue -->
+    <!-- ═══════════════════ DRAFT QUEUE ═══════════════════ -->
     <section x-show="activeTab==='drafts'" aria-label="Draft review queue">
-      <div class="mb-4 flex flex-wrap items-start justify-between gap-3"><div><h2 class="text-lg font-semibold">Draft review queue</h2><p class="mt-1 text-sm text-ink-muted">Review and edit the message before approval. Approvals recheck payment status.</p></div><span class="rounded-full bg-brand/10 px-3 py-1.5 text-xs font-semibold text-brand" x-text="pendingDrafts.length+' need review'"></span></div>
-      <div class="space-y-4"><template x-for="draft in reviewDrafts" :key="draft.draft_id"><article class="rounded-xl border border-outline/40 bg-white p-4 shadow-card sm:p-6">
-        <div class="flex flex-col justify-between gap-3 sm:flex-row sm:items-start"><div><div class="flex flex-wrap items-center gap-2"><h3 class="text-lg font-semibold" x-text="draft.name+' · '+draft.invoice_id"></h3><span :class="priorityClass(draft.priority)" class="rounded-full px-2.5 py-1 text-xs font-semibold capitalize" x-text="draft.priority+' priority'"></span><span :class="statusClass(draft.status)" class="rounded-full px-2.5 py-1 text-xs font-semibold" x-text="draft.status.replaceAll('_',' ')"></span></div><p class="mt-1 text-sm text-ink-muted"><span x-text="formatINR(draft.amount)"></span><span> · due </span><span x-text="draft.due_date"></span><span x-show="draft.days_overdue>0"> · </span><span x-show="draft.days_overdue>0" x-text="draft.days_overdue+' days overdue'"></span></p><p class="mt-1 text-xs" :class="draft.email?'text-ink-muted':'font-semibold text-error'" x-text="draft.email||'Missing client email — blocked until contact is corrected.'"></p></div></div>
-        <div class="my-4 rounded-lg bg-surface-low p-3"><div class="mb-1 text-[11px] font-semibold uppercase tracking-wide text-ink-muted">Priority reasoning</div><p class="text-sm leading-6 text-ink" x-text="draft.reasoning"></p></div>
-        <template x-if="draft.status==='PENDING_APPROVAL'"><div class="space-y-3"><div><label :for="'subject-'+draft.draft_id" class="mb-1 block text-xs font-semibold text-ink-muted">Email subject</label><input :id="'subject-'+draft.draft_id" type="text" maxlength="180" x-model="draft.editable_subject" class="w-full rounded-lg border border-outline/60 bg-white px-3 py-2.5 text-sm"></div><div><label :for="'body-'+draft.draft_id" class="mb-1 block text-xs font-semibold text-ink-muted">Email body</label><textarea :id="'body-'+draft.draft_id" rows="6" maxlength="5000" x-model="draft.editable_body" class="w-full resize-y rounded-lg border border-outline/60 bg-white px-3 py-2.5 text-sm leading-6"></textarea></div><div class="flex flex-wrap justify-end gap-2 border-t border-outline/30 pt-3"><button type="button" @click="saveDraft(draft)" :disabled="busyAction===draft.draft_id" class="rounded-lg border border-outline bg-white px-3 py-2 text-sm font-medium hover:bg-surface-low disabled:opacity-50"><span x-text="busyAction===draft.draft_id?'Saving…':'Save edits'"></span></button><button type="button" @click="rejectDraft(draft)" :disabled="busyAction===draft.draft_id" class="rounded-lg bg-error-soft px-3 py-2 text-sm font-semibold text-error hover:brightness-95 disabled:opacity-50">Reject</button><button type="button" @click="openApproveModal(draft)" :disabled="busyAction===draft.draft_id" class="inline-flex items-center gap-1.5 rounded-lg bg-ink px-3 py-2 text-sm font-semibold text-white hover:bg-brand disabled:opacity-50"><span class="material-symbols-outlined text-[17px]" x-text="draft.invoice_status==='PAID'?'verified':'send'"></span><span x-text="draft.invoice_status==='PAID'?'Recheck payment':'Review & approve'"></span></button></div></div></template>
-        <div x-show="draft.status==='BLOCKED'" class="rounded-lg border border-error/20 bg-error-soft p-3 text-sm text-error"><strong>Blocked:</strong> <span x-text="draft.reasoning||'Resolve the client contact information before preparing a follow-up.'"></span></div>
-      </article></template><div x-show="reviewDrafts.length===0" class="rounded-xl border border-outline/40 bg-white px-5 py-14 text-center shadow-card"><span class="material-symbols-outlined text-4xl text-success">task_alt</span><h3 class="mt-2 font-semibold">No drafts awaiting review</h3><p class="mt-1 text-sm text-ink-muted">Run a cycle to identify overdue invoices and prepare follow-ups.</p></div></div>
-      <details class="mt-5 rounded-xl border border-outline/40 bg-white shadow-card"><summary class="cursor-pointer list-none px-4 py-4 text-sm font-semibold">Recently processed drafts <span class="ml-1 text-xs font-normal text-ink-muted" x-text="'('+processedDrafts.length+')'"></span></summary><div class="scrollbar-thin overflow-x-auto border-t border-outline/30"><table class="w-full min-w-[700px] text-left text-sm"><thead class="bg-surface-low text-[11px] uppercase tracking-wider text-ink-muted"><tr><th class="px-4 py-3">Invoice</th><th class="px-4 py-3">Client</th><th class="px-4 py-3">Priority</th><th class="px-4 py-3">Status</th><th class="px-4 py-3">Message ID</th><th class="px-4 py-3">Updated</th></tr></thead><tbody class="divide-y divide-outline/30"><template x-for="draft in processedDrafts" :key="'done-'+draft.draft_id"><tr><td class="px-4 py-3 font-medium" x-text="draft.invoice_id"></td><td class="px-4 py-3" x-text="draft.name"></td><td class="px-4 py-3 capitalize" x-text="draft.priority"></td><td class="px-4 py-3"><span :class="statusClass(draft.status)" class="rounded-full px-2.5 py-1 text-xs font-semibold" x-text="draft.status.replaceAll('_',' ')"></span></td><td class="max-w-[180px] truncate px-4 py-3 text-xs text-ink-muted" x-text="draft.message_id||'—'"></td><td class="whitespace-nowrap px-4 py-3 text-xs text-ink-muted" x-text="formatDate(draft.updated_at)"></td></tr></template><tr x-show="processedDrafts.length===0"><td colspan="6" class="px-4 py-6 text-center text-sm text-ink-muted">No processed drafts yet.</td></tr></tbody></table></div></details>
+      <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
+        <div><h2 style="font-size:18px" class="font-bold">Draft Review Queue</h2><p class="text-sm text-secondary mt-2">Review and edit messages before approval. Payment rechecks run at Gate B.</p></div>
+        <span class="badge badge-blue" x-text="pendingDrafts.length+' need review'"></span>
+      </div>
+      <div class="space-y-4">
+        <template x-for="draft in reviewDrafts" :key="draft.draft_id">
+          <article class="card draft-card">
+            <div class="draft-meta">
+              <h3 class="draft-title" x-text="draft.name+' · '+draft.invoice_id"></h3>
+              <span :class="priorityClass(draft.priority)" class="badge capitalize" x-text="draft.priority+' priority'"></span>
+              <span :class="statusClass(draft.status)" class="badge" x-text="draft.status.replaceAll('_',' ')"></span>
+            </div>
+            <p class="draft-info">
+              <span x-text="formatINR(draft.amount)"></span>
+              <span> · due </span><span x-text="draft.due_date"></span>
+              <span x-show="draft.days_overdue>0"> · </span>
+              <span x-show="draft.days_overdue>0" x-text="draft.days_overdue+' days overdue'"></span>
+            </p>
+            <p class="text-xs mt-2" :style="draft.email?'color:var(--text-muted)':'color:var(--accent-red);font-weight:600'" x-text="draft.email||'Missing client email — blocked.'"></p>
+            <div class="draft-reasoning" x-text="draft.reasoning"></div>
+
+            <template x-if="draft.status==='PENDING_APPROVAL'">
+              <div>
+                <div class="mb-4">
+                  <label :for="'s-'+draft.draft_id" class="field-label">Email subject</label>
+                  <input :id="'s-'+draft.draft_id" type="text" maxlength="180" x-model="draft.editable_subject" class="input">
+                </div>
+                <div class="mb-4">
+                  <label :for="'b-'+draft.draft_id" class="field-label">Email body</label>
+                  <textarea :id="'b-'+draft.draft_id" rows="6" maxlength="5000" x-model="draft.editable_body" class="input"></textarea>
+                </div>
+                <div class="draft-actions">
+                  <button type="button" @click="saveDraft(draft)" :disabled="busyAction===draft.draft_id" class="btn btn-ghost btn-sm">
+                    <span x-text="busyAction===draft.draft_id?'Saving…':'Save edits'"></span>
+                  </button>
+                  <button type="button" @click="rejectDraft(draft)" :disabled="busyAction===draft.draft_id" class="btn btn-danger btn-sm">Reject</button>
+                  <button type="button" @click="openApproveModal(draft)" :disabled="busyAction===draft.draft_id" class="btn btn-primary btn-sm">
+                    <span class="material-symbols-outlined" style="font-size:16px" x-text="draft.invoice_status==='PAID'||draft.payment_status==='PAID_CONFIRMED'?'verified':'send'"></span>
+                    <span x-text="draft.invoice_status==='PAID'||draft.payment_status==='PAID_CONFIRMED'?'Recheck':'Review & approve'"></span>
+                  </button>
+                </div>
+              </div>
+            </template>
+
+            <div x-show="draft.status==='BLOCKED'" class="alert alert-error mt-4" style="margin-bottom:0">
+              <span><strong>Blocked:</strong> <span x-text="draft.reasoning||'Resolve contact info.'"></span></span>
+            </div>
+          </article>
+        </template>
+
+        <div x-show="reviewDrafts.length===0" class="card empty">
+          <span class="empty-icon material-symbols-outlined">task_alt</span>
+          <h3 class="empty-title">No drafts awaiting review</h3>
+          <p class="empty-desc">Run a cycle to identify overdue invoices.</p>
+        </div>
+      </div>
+
+      <!-- Processed drafts -->
+      <details class="card mt-6">
+        <summary style="cursor:pointer;padding:16px 20px;font-size:14px;font-weight:600;list-style:none;display:flex;align-items:center;gap:8px">
+          <span class="material-symbols-outlined" style="font-size:18px">history</span>
+          <span>Recently processed</span>
+          <span class="badge badge-muted" x-text="processedDrafts.length"></span>
+        </summary>
+        <div class="table-wrap" style="border-top:1px solid var(--border-light)">
+          <table style="min-width:700px">
+            <thead><tr><th>Invoice</th><th>Client</th><th>Priority</th><th>Status</th><th>Message ID</th><th>Updated</th></tr></thead>
+            <tbody>
+              <template x-for="draft in processedDrafts" :key="'d-'+draft.draft_id">
+                <tr>
+                  <td class="font-semibold" x-text="draft.invoice_id"></td>
+                  <td x-text="draft.name"></td>
+                  <td class="capitalize" x-text="draft.priority"></td>
+                  <td><span :class="statusClass(draft.status)" class="badge" x-text="draft.status.replaceAll('_',' ')"></span></td>
+                  <td class="truncate text-xs text-muted font-mono" x-text="draft.message_id||'—'"></td>
+                  <td class="nowrap text-xs text-muted" x-text="formatDate(draft.updated_at)"></td>
+                </tr>
+              </template>
+              <tr x-show="processedDrafts.length===0"><td colspan="6" class="text-center text-sm text-muted" style="padding:24px">No processed drafts.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </details>
     </section>
 
-    <!-- Audit trail -->
+    <!-- ═══════════════════ AUDIT TRAIL ═══════════════════ -->
     <section x-show="activeTab==='audit'" aria-label="Audit trail">
-      <div class="mb-4"><h2 class="text-lg font-semibold">Audit trail</h2><p class="mt-1 text-sm text-ink-muted">Append-only record of workflow and human actions.</p></div>
-      <div class="overflow-hidden rounded-xl border border-outline/40 bg-white shadow-card"><div class="scrollbar-thin overflow-x-auto"><table class="w-full min-w-[900px] text-left text-sm"><thead class="bg-surface-low text-[11px] uppercase tracking-wider text-ink-muted"><tr><th class="px-4 py-3">Timestamp</th><th class="px-4 py-3">Action</th><th class="px-4 py-3">Actor</th><th class="px-4 py-3">Reasoning</th><th class="px-4 py-3">Details</th></tr></thead><tbody class="divide-y divide-outline/30"><template x-for="item in auditLogs" :key="item.id"><tr class="hover:bg-surface-low/50"><td class="whitespace-nowrap px-4 py-3 text-xs text-ink-muted" x-text="formatDate(item.timestamp)"></td><td class="whitespace-nowrap px-4 py-3 font-medium" x-text="item.action"></td><td class="px-4 py-3 capitalize" x-text="item.actor"></td><td class="max-w-[320px] px-4 py-3 text-xs leading-5 text-ink-muted" x-text="item.reasoning"></td><td class="px-4 py-3"><button type="button" @click="selectedAudit=item" class="text-sm font-medium text-brand hover:underline">View details</button></td></tr></template><tr x-show="auditLogs.length===0"><td colspan="5" class="px-4 py-12 text-center text-sm text-ink-muted">No audit entries recorded yet.</td></tr></tbody></table></div></div>
+      <div class="mb-4"><h2 style="font-size:18px" class="font-bold">Audit Trail</h2><p class="text-sm text-secondary mt-2">Append-only record of every workflow and human action.</p></div>
+      <div class="card">
+        <div class="table-wrap">
+          <table style="min-width:900px">
+            <thead><tr><th>Timestamp</th><th>Action</th><th>Actor</th><th>Reasoning</th><th>Details</th></tr></thead>
+            <tbody>
+              <template x-for="item in auditLogs" :key="item.id">
+                <tr>
+                  <td class="nowrap text-xs text-muted" x-text="formatDate(item.timestamp)"></td>
+                  <td class="nowrap font-semibold" x-text="item.action"></td>
+                  <td class="capitalize" x-text="item.actor"></td>
+                  <td style="max-width:320px" class="text-xs text-secondary" x-text="item.reasoning"></td>
+                  <td><button type="button" @click="selectedAudit=item" class="text-sm font-semibold" style="color:var(--accent-blue);background:none;border:none;cursor:pointer">View</button></td>
+                </tr>
+              </template>
+              <tr x-show="auditLogs.length===0"><td colspan="5" class="empty"><p class="empty-desc">No audit entries yet.</p></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </section>
-    <footer class="mt-8 border-t border-outline/40 py-5 text-center text-xs text-ink-muted">InvoiceFlow · Human-reviewed accounts-receivable follow-up</footer>
+
+    <!-- ═══════════════════ SETTINGS ═══════════════════ -->
+    <section x-show="activeTab==='settings'" aria-label="Settings">
+      <div class="mb-4"><h2 style="font-size:18px" class="font-bold">Settings</h2><p class="text-sm text-secondary mt-2">Current configuration (read from .env).</p></div>
+      <div class="grid-2">
+        <article class="card" style="padding:24px">
+          <h3 class="font-semibold mb-4">Thresholds</h3>
+          <div class="space-y-4">
+            <div><span class="text-xs text-muted font-semibold">High-value threshold</span><div class="font-bold mt-2" x-text="formatINR(health.high_value_threshold||100000)"></div></div>
+            <div><span class="text-xs text-muted font-semibold">Company name</span><div class="font-semibold mt-2" x-text="health.company_name||'Demo Company Pvt Ltd'"></div></div>
+          </div>
+        </article>
+        <article class="card" style="padding:24px">
+          <h3 class="font-semibold mb-4">Connections</h3>
+          <div class="space-y-4">
+            <div class="flex items-center gap-3">
+              <span class="status-dot" :class="health.mail_mode==='gmail'||health.mail_mode==='live'?'dot-amber':'dot-green'"></span>
+              <div><div class="text-xs text-muted font-semibold">Email mode</div><div class="font-semibold" x-text="health.mail_mode||'dry-run'"></div></div>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="status-dot dot-green"></span>
+              <div><div class="text-xs text-muted font-semibold">Database</div><div class="font-semibold">SQLite (local)</div></div>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="status-dot" :class="health.ollama_model?'dot-green':'dot-red'"></span>
+              <div><div class="text-xs text-muted font-semibold">LLM (Ollama)</div><div class="font-semibold" x-text="health.ollama_model||'Unavailable — fallback active'"></div></div>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="status-dot" :class="health.test_mode?'dot-amber':'dot-green'"></span>
+              <div><div class="text-xs text-muted font-semibold">Test mode</div><div class="font-semibold" x-text="health.test_mode?'Enabled':'Disabled'"></div></div>
+            </div>
+          </div>
+        </article>
+      </div>
+      <div class="card mt-4" style="padding:20px">
+        <h3 class="font-semibold mb-2">Payment Safety</h3>
+        <p class="text-sm text-secondary" style="line-height:1.7">
+          <strong>Gate A</strong> runs before draft creation — if payment evidence exists, no draft is created.<br>
+          <strong>Gate B</strong> runs immediately before send — if payment evidence appears after approval, the send is cancelled.<br>
+          <strong>Idempotency</strong> — each send operation has a unique key preventing duplicate emails.<br>
+          <strong>Hard-stop states</strong> — PAYMENT_CLAIMED, PAID_CONFIRMED, DISPUTED, and SEND_BLOCKED prevent any reminder sends.
+        </p>
+      </div>
+    </section>
+
+    <footer class="footer">AR Copilot · Intelligent overdue invoice resolution · Human-reviewed, payment-safe follow-up</footer>
   </main>
 
-  <!-- Approval confirmation -->
-  <div x-cloak x-show="showApproveModal" x-transition.opacity class="fixed inset-0 z-50 grid place-items-center bg-ink/50 p-4" @click.self="showApproveModal=false" role="presentation">
-    <section role="dialog" aria-modal="true" aria-labelledby="approval-title" class="w-full max-w-lg rounded-2xl bg-white p-5 shadow-2xl sm:p-6">
-      <div class="flex items-start gap-3"><span class="material-symbols-outlined rounded-xl p-2" :class="health.mail_mode==='gmail'?'bg-warning-soft text-warning':'bg-success-soft text-success'" x-text="health.mail_mode==='gmail'?'warning':'task_alt'"></span><div><h2 id="approval-title" class="text-lg font-semibold" x-text="approvalIsPaid?'Payment recheck required':'Confirm draft approval'"></h2><p class="mt-1 text-sm text-ink-muted" x-text="currentDraft?currentDraft.name+' · '+currentDraft.invoice_id+' · '+(currentDraft.email||'No email'):''"></p></div></div>
-      <div class="my-4 rounded-lg p-4 text-sm leading-6" :class="approvalIsPaid?'bg-success-soft text-success':(health.mail_mode==='gmail'?'bg-warning-soft text-warning':'bg-surface-low text-ink-muted')">
-        <template x-if="approvalIsPaid"><p>The invoice currently appears paid. Approval will run the server-side status recheck; the backend should cancel the send automatically if it remains paid.</p></template>
-        <template x-if="!approvalIsPaid && health.mail_mode==='gmail'"><p><strong>Live Gmail mode is enabled.</strong> Confirming will send this email to the client if the invoice is still pending when the backend rechecks its status.</p></template>
-        <template x-if="!approvalIsPaid && health.mail_mode!=='gmail'"><p><strong>Dry-run mode is enabled.</strong> Confirming records a simulated send; no external email will be sent.</p></template>
+  <!-- ═══════ Approval modal ═══════ -->
+  <div x-cloak x-show="showApproveModal" x-transition.opacity class="overlay" @click.self="showApproveModal=false">
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="approve-title">
+      <div class="flex items-center gap-3" style="margin-bottom:16px">
+        <span class="material-symbols-outlined" :style="health.mail_mode==='gmail'||health.mail_mode==='live'?'color:var(--accent-amber)':'color:var(--accent-green)'" style="font-size:28px" x-text="approvalIsPaid?'verified':(health.mail_mode==='gmail'||health.mail_mode==='live'?'warning':'task_alt')"></span>
+        <div>
+          <h2 id="approve-title" class="modal-title" x-text="approvalIsPaid?'Payment recheck':'Confirm approval'"></h2>
+          <p class="modal-desc" x-text="currentDraft?currentDraft.name+' · '+currentDraft.invoice_id+' · '+(currentDraft.email||'No email'):''"></p>
+        </div>
       </div>
-      <div class="flex justify-end gap-2"><button type="button" @click="showApproveModal=false" class="rounded-lg border border-outline px-4 py-2 text-sm font-medium hover:bg-surface-low">Cancel</button><button type="button" @click="confirmApprove()" :disabled="busyAction===currentDraft?.draft_id||!health.ok||!currentDraft?.email" class="rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-white hover:bg-brand disabled:opacity-50" x-text="busyAction===currentDraft?.draft_id?'Processing…':(approvalIsPaid?'Recheck and continue':(health.mail_mode==='gmail'?'Confirm & send email':'Approve simulated send'))"></button></div>
+      <div class="alert" :class="approvalIsPaid?'alert-success':(health.mail_mode==='gmail'||health.mail_mode==='live'?'alert-error':'alert-info')" style="margin-bottom:16px">
+        <template x-if="approvalIsPaid"><p>Invoice appears paid. Approval will recheck — the backend should cancel automatically.</p></template>
+        <template x-if="!approvalIsPaid && (health.mail_mode==='gmail'||health.mail_mode==='live')"><p><strong>Live mode enabled.</strong> This will send a real email after Gate B verification passes.</p></template>
+        <template x-if="!approvalIsPaid && health.mail_mode!=='gmail' && health.mail_mode!=='live'"><p><strong>Dry-run mode.</strong> A simulated send will be recorded; no real email is sent.</p></template>
+      </div>
+      <div class="flex justify-between" style="gap:8px;justify-content:flex-end">
+        <button type="button" @click="showApproveModal=false" class="btn btn-ghost">Cancel</button>
+        <button type="button" @click="confirmApprove()" :disabled="busyAction===currentDraft?.draft_id||!health.ok||!currentDraft?.email" class="btn btn-primary" x-text="busyAction===currentDraft?.draft_id?'Processing…':(approvalIsPaid?'Recheck & continue':(health.mail_mode==='gmail'||health.mail_mode==='live'?'Confirm & send':'Approve dry-run'))"></button>
+      </div>
     </section>
   </div>
 
-  <!-- Audit details -->
-  <div x-cloak x-show="selectedAudit" x-transition.opacity class="fixed inset-0 z-50 grid place-items-center bg-ink/50 p-4" @click.self="selectedAudit=null" role="presentation">
-    <section role="dialog" aria-modal="true" aria-labelledby="audit-title" class="scrollbar-thin max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-5 shadow-2xl sm:p-6">
-      <div class="flex items-center justify-between gap-3"><div><h2 id="audit-title" class="text-lg font-semibold" x-text="selectedAudit?.action"></h2><p class="mt-1 text-xs text-ink-muted" x-text="selectedAudit?formatDate(selectedAudit.timestamp)+' · '+selectedAudit.actor:''"></p></div><button type="button" @click="selectedAudit=null" aria-label="Close audit details" class="grid h-9 w-9 place-items-center rounded-lg hover:bg-surface-low"><span class="material-symbols-outlined">close</span></button></div>
-      <p class="my-4 text-sm leading-6" x-text="selectedAudit?.reasoning"></p><div class="space-y-3"><div><h3 class="mb-1 text-xs font-semibold uppercase tracking-wide text-ink-muted">Input</h3><pre class="scrollbar-thin max-h-52 overflow-auto rounded-lg bg-surface-low p-3 text-xs" x-text="selectedAudit?prettyJson(selectedAudit.input_json):''"></pre></div><div><h3 class="mb-1 text-xs font-semibold uppercase tracking-wide text-ink-muted">Output</h3><pre class="scrollbar-thin max-h-52 overflow-auto rounded-lg bg-surface-low p-3 text-xs" x-text="selectedAudit?prettyJson(selectedAudit.output_json):''"></pre></div></div>
+  <!-- ═══════ Audit detail modal ═══════ -->
+  <div x-cloak x-show="selectedAudit" x-transition.opacity class="overlay" @click.self="selectedAudit=null">
+    <section class="modal modal-lg" role="dialog" aria-modal="true" aria-labelledby="audit-detail-title">
+      <div class="flex justify-between items-center" style="margin-bottom:16px">
+        <div>
+          <h2 id="audit-detail-title" class="modal-title" x-text="selectedAudit?.action"></h2>
+          <p class="modal-desc" x-text="selectedAudit?formatDate(selectedAudit.timestamp)+' · '+selectedAudit.actor:''"></p>
+        </div>
+        <button type="button" @click="selectedAudit=null" class="btn btn-ghost btn-sm" aria-label="Close">
+          <span class="material-symbols-outlined" style="font-size:18px">close</span>
+        </button>
+      </div>
+      <p class="text-sm text-secondary mb-4" style="line-height:1.6" x-text="selectedAudit?.reasoning"></p>
+      <div class="space-y-4">
+        <div>
+          <h3 class="field-label">Input</h3>
+          <pre class="pre-wrap" style="background:rgba(255,255,255,.03);border-radius:var(--radius-sm);padding:12px 16px;font-size:12px;max-height:200px;overflow:auto;color:var(--text-secondary)" x-text="selectedAudit?prettyJson(selectedAudit.input_json):''"></pre>
+        </div>
+        <div>
+          <h3 class="field-label">Output</h3>
+          <pre class="pre-wrap" style="background:rgba(255,255,255,.03);border-radius:var(--radius-sm);padding:12px 16px;font-size:12px;max-height:200px;overflow:auto;color:var(--text-secondary)" x-text="selectedAudit?prettyJson(selectedAudit.output_json):''"></pre>
+        </div>
+      </div>
     </section>
   </div>
 
   <script>
-    function arWorkflowApp(){
+    function arCopilot() {
       return {
-        tabs:[{id:'overview',label:'Overview'},{id:'invoices',label:'Invoices'},{id:'drafts',label:'Draft queue'},{id:'audit',label:'Audit trail'}],
-        activeTab:'overview',health:{ok:false,mail_mode:'dry-run',ollama_model:''},invoices:[],drafts:[],auditLogs:[],invoiceSearch:'',invoiceStatusFilter:'',loading:false,isRunningCycle:false,busyAction:'',errorMessage:'',notice:'',noticeTone:'info',showApproveModal:false,currentDraft:null,selectedAudit:null,
-        async init(){await this.fetchData();},
-        async request(url,options={}){const response=await fetch(url,{...options,headers:{'Content-Type':'application/json',...(options.headers||{})}});let data;try{data=await response.json();}catch{data={detail:response.statusText};}if(!response.ok)throw new Error(data.detail||`Request failed (${response.status})`);return data;},
-        async fetchData(){this.loading=true;this.errorMessage='';this.health.ok=false;try{const [health,invoices,drafts,audit]=await Promise.all([this.request('/api/health'),this.request('/api/invoices'),this.request('/api/drafts'),this.request('/api/audit?limit=250')]);this.health=health;this.invoices=invoices;this.drafts=drafts.map(d=>({...d,editable_subject:d.subject||'',editable_body:d.body||''}));this.auditLogs=audit;}catch(error){this.errorMessage=`Could not load the dashboard: ${error.message}`;}finally{this.loading=false;}},
-        get overdueInvoices(){return this.invoices.filter(i=>i.status==='PENDING'&&Number(i.days_overdue)>0);},
-        get pendingDrafts(){return this.drafts.filter(d=>d.status==='PENDING_APPROVAL');},
-        get reviewDrafts(){return this.drafts.filter(d=>['PENDING_APPROVAL','BLOCKED'].includes(d.status));},
-        get processedDrafts(){return this.drafts.filter(d=>!['PENDING_APPROVAL','BLOCKED'].includes(d.status));},
-        get kpiCards(){return [
-          {label:'Overdue invoices',value:this.overdueInvoices.length,icon:'warning',tone:'bg-error-soft text-error'},
-          {label:'Awaiting approval',value:this.pendingDrafts.length,icon:'edit_note',tone:'bg-brand/10 text-brand'},
-          {label:'Blocked items',value:this.drafts.filter(d=>d.status==='BLOCKED').length,icon:'block',tone:'bg-surface-mid text-ink-muted'},
-          {label:'High priority',value:this.pendingDrafts.filter(d=>d.priority==='high').length,icon:'priority_high',tone:'bg-warning-soft text-warning'}
-        ];},
-        get filteredInvoices(){const q=this.invoiceSearch.trim().toLowerCase();return this.invoices.filter(i=>{const overdue=i.status==='PENDING'&&Number(i.days_overdue)>0;const queryOk=!q||[i.name,i.invoice_id,i.email,i.client_id].some(v=>String(v||'').toLowerCase().includes(q));const filterOk=!this.invoiceStatusFilter||(this.invoiceStatusFilter==='OVERDUE'?overdue:i.status===this.invoiceStatusFilter);return queryOk&&filterOk;});},
-        priorityForInvoice(invoiceId){const d=this.drafts.find(x=>x.invoice_id===invoiceId);return d?.priority||'';},
-        priorityClass(priority){return ({high:'bg-error-soft text-error',medium:'bg-warning-soft text-warning',low:'bg-success-soft text-success'})[String(priority||'').toLowerCase()]||'bg-surface-mid text-ink-muted';},
-        statusClass(status){if(['SENT','PAID','FOLLOWED_UP','CANCELED_PAID'].includes(status))return 'bg-success-soft text-success';if(['FAILED','BLOCKED'].includes(status))return 'bg-error-soft text-error';if(['PENDING_APPROVAL','PENDING'].includes(status))return 'bg-warning-soft text-warning';return 'bg-surface-mid text-ink-muted';},
-        formatINR(amount){return new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:2}).format(Number(amount||0));},
-        formatDate(value){if(!value)return '—';const d=new Date(value);return Number.isNaN(d.getTime())?value:d.toLocaleString(undefined,{dateStyle:'medium',timeStyle:'short'});},
-        prettyJson(value){if(typeof value!=='string')return JSON.stringify(value,null,2);try{return JSON.stringify(JSON.parse(value),null,2);}catch{return value;}},
-        notify(message,tone='info'){this.notice=message;this.noticeTone=tone;window.clearTimeout(this._noticeTimer);this._noticeTimer=window.setTimeout(()=>{this.notice='';},6000);},
-        async runCycle(){if(this.isRunningCycle)return;this.isRunningCycle=true;this.errorMessage='';try{const result=await this.request('/api/cycle',{method:'POST'});this.notify(`Cycle complete · ${result.overdue} overdue · ${result.drafted} draft(s) · ${result.blocked} blocked · ${result.degraded} fallback(s)`);await this.fetchData();}catch(error){this.errorMessage=`Workflow cycle failed: ${error.message}`;}finally{this.isRunningCycle=false;}},
-        async saveDraft(draft){if(!draft.editable_subject.trim()||draft.editable_subject.trim().length<3||draft.editable_body.trim().length<20){this.notify('Subject must be at least 3 characters and body at least 20 characters.','error');return;}this.busyAction=draft.draft_id;try{await this.request(`/api/drafts/${encodeURIComponent(draft.draft_id)}/edit`,{method:'POST',body:JSON.stringify({subject:draft.editable_subject,body:draft.editable_body})});this.notify('Draft edits saved.');await this.fetchData();}catch(error){this.notify(`Could not save edits: ${error.message}`,'error');}finally{this.busyAction='';}},
-        async rejectDraft(draft){if(!window.confirm(`Reject the follow-up draft for ${draft.invoice_id}?`))return;this.busyAction=draft.draft_id;try{await this.request(`/api/drafts/${encodeURIComponent(draft.draft_id)}/reject`,{method:'POST'});this.notify('Draft rejected.');await this.fetchData();}catch(error){this.notify(`Could not reject draft: ${error.message}`,'error');}finally{this.busyAction='';}},
-        get approvalIsPaid(){return this.currentDraft?.invoice_status==='PAID';},
-        openApproveModal(draft){if(draft.status!=='PENDING_APPROVAL')return;if(!this.health.ok){this.notify('Mail mode is unverified. Refresh the dashboard before approving.','error');return;}if(!draft.email){this.notify('Client email is missing; this draft cannot be approved.','error');return;}this.currentDraft=draft;this.showApproveModal=true;},
-        async confirmApprove(){if(!this.currentDraft||this.currentDraft.status!=='PENDING_APPROVAL'||!this.health.ok||!this.currentDraft.email)return;const draft=this.currentDraft;this.busyAction=draft.draft_id;try{if(draft.editable_subject!==draft.subject||draft.editable_body!==draft.body){await this.request(`/api/drafts/${encodeURIComponent(draft.draft_id)}/edit`,{method:'POST',body:JSON.stringify({subject:draft.editable_subject,body:draft.editable_body})});}const result=await this.request(`/api/drafts/${encodeURIComponent(draft.draft_id)}/approve`,{method:'POST'});this.showApproveModal=false;this.currentDraft=null;const status=result.status||'completed';this.notify(result.message||`Draft status: ${status.replaceAll('_',' ').toLowerCase()}`,status==='FAILED'||status==='BLOCKED'?'error':'info');await this.fetchData();}catch(error){this.notify(`Approval could not be completed: ${error.message}`,'error');}finally{this.busyAction='';}},
+        tabs: [
+          {id:'overview', label:'Dashboard'},
+          {id:'invoices', label:'Invoices'},
+          {id:'drafts', label:'Work Queue'},
+          {id:'audit', label:'Audit Trail'},
+          {id:'settings', label:'Settings'}
+        ],
+        activeTab: 'overview',
+        health: {ok:false, mail_mode:'dry-run', ollama_model:'', company_name:'', high_value_threshold:100000, test_mode:true},
+        invoices: [],
+        drafts: [],
+        auditLogs: [],
+        invoiceSearch: '',
+        invoiceStatusFilter: '',
+        loading: false,
+        isRunningCycle: false,
+        busyAction: '',
+        errorMessage: '',
+        notice: '',
+        noticeTone: 'info',
+        showApproveModal: false,
+        currentDraft: null,
+        selectedAudit: null,
+        selectedCase: null,
+
+        async init() { await this.fetchData(); },
+
+        async request(url, options={}) {
+          const r = await fetch(url, {...options, headers:{'Content-Type':'application/json',...(options.headers||{})}});
+          let data; try { data = await r.json(); } catch { data = {detail: r.statusText}; }
+          if (!r.ok) throw new Error(data.detail || `Request failed (${r.status})`);
+          return data;
+        },
+
+        async fetchData() {
+          this.loading = true; this.errorMessage = ''; this.health.ok = false;
+          try {
+            const [health, invoices, drafts, audit] = await Promise.all([
+              this.request('/api/health'),
+              this.request('/api/invoices'),
+              this.request('/api/drafts'),
+              this.request('/api/audit?limit=250')
+            ]);
+            this.health = health;
+            this.invoices = invoices;
+            this.drafts = drafts.map(d => ({...d, editable_subject: d.subject||'', editable_body: d.body||''}));
+            this.auditLogs = audit;
+          } catch(e) { this.errorMessage = `Dashboard load failed: ${e.message}`; }
+          finally { this.loading = false; }
+        },
+
+        get overdueInvoices() { return this.invoices.filter(i => i.status==='PENDING' && Number(i.days_overdue) > 0); },
+        get pendingDrafts() { return this.drafts.filter(d => d.status==='PENDING_APPROVAL'); },
+        get reviewDrafts() { return this.drafts.filter(d => ['PENDING_APPROVAL','BLOCKED'].includes(d.status)); },
+        get processedDrafts() { return this.drafts.filter(d => !['PENDING_APPROVAL','BLOCKED'].includes(d.status)); },
+
+        get kpiCards() {
+          const totalOverdue = this.overdueInvoices.reduce((s,i) => s + Number(i.outstanding_amount||i.amount||0), 0);
+          return [
+            {label:'Total overdue', value: this.formatINR(totalOverdue), icon:'currency_rupee', bg:'var(--accent-red-soft)', color:'var(--accent-red)'},
+            {label:'Open cases', value: this.overdueInvoices.length, icon:'pending_actions', bg:'var(--accent-amber-soft)', color:'var(--accent-amber)'},
+            {label:'Awaiting approval', value: this.pendingDrafts.length, icon:'rate_review', bg:'var(--accent-blue-soft)', color:'var(--accent-blue)'},
+            {label:'Sent today', value: this.drafts.filter(d => d.status==='SENT').length, icon:'mark_email_read', bg:'var(--accent-green-soft)', color:'var(--accent-green)'}
+          ];
+        },
+
+        get filteredInvoices() {
+          const q = this.invoiceSearch.trim().toLowerCase();
+          return this.invoices.filter(i => {
+            const overdue = i.status==='PENDING' && Number(i.days_overdue) > 0;
+            const qOk = !q || [i.name,i.invoice_id,i.email,i.client_id].some(v => String(v||'').toLowerCase().includes(q));
+            const fOk = !this.invoiceStatusFilter || (this.invoiceStatusFilter==='OVERDUE' ? overdue : i.status===this.invoiceStatusFilter);
+            return qOk && fOk;
+          });
+        },
+
+        priorityForInvoice(id) { const d = this.drafts.find(x => x.invoice_id===id); return d?.priority||''; },
+
+        priorityClass(p) {
+          return ({
+            high:'badge-red', critical:'badge-red',
+            medium:'badge-amber',
+            low:'badge-green'
+          })[String(p||'').toLowerCase()] || 'badge-muted';
+        },
+
+        statusClass(s) {
+          if (['SENT','PAID','FOLLOWED_UP','CANCELED_PAID','CLOSED'].includes(s)) return 'badge-green';
+          if (['FAILED','BLOCKED','SEND_FAILED','SEND_BLOCKED'].includes(s)) return 'badge-red';
+          if (['PENDING_APPROVAL','PENDING','AWAITING_APPROVAL'].includes(s)) return 'badge-amber';
+          if (['ESCALATED'].includes(s)) return 'badge-purple';
+          return 'badge-muted';
+        },
+
+        paymentBadge(s) {
+          if (s==='PAID_CONFIRMED') return 'badge-green';
+          if (s==='PAYMENT_CLAIMED' || s==='PENDING_RECONCILIATION') return 'badge-amber';
+          if (s==='UNKNOWN') return 'badge-red';
+          return 'badge-muted';
+        },
+
+        formatINR(amount) { return new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:0}).format(Number(amount||0)); },
+        formatDate(v) { if(!v) return '—'; const d=new Date(v); return isNaN(d.getTime())?v:d.toLocaleString(undefined,{dateStyle:'medium',timeStyle:'short'}); },
+        prettyJson(v) { if(typeof v!=='string') return JSON.stringify(v,null,2); try { return JSON.stringify(JSON.parse(v),null,2); } catch { return v; } },
+
+        notify(msg, tone='info') {
+          this.notice = msg; this.noticeTone = tone;
+          clearTimeout(this._nt);
+          this._nt = setTimeout(() => { this.notice = ''; }, 6000);
+        },
+
+        async runCycle() {
+          if (this.isRunningCycle) return;
+          this.isRunningCycle = true; this.errorMessage = '';
+          try {
+            const r = await this.request('/api/cycle', {method:'POST'});
+            this.notify(`Cycle done · ${r.overdue} overdue · ${r.drafted} drafted · ${r.blocked} blocked · ${r.escalated||0} escalated · ${r.reconciled||0} reconciled`);
+            await this.fetchData();
+          } catch(e) { this.errorMessage = `Cycle failed: ${e.message}`; }
+          finally { this.isRunningCycle = false; }
+        },
+
+        async saveDraft(draft) {
+          if (!draft.editable_subject.trim() || draft.editable_subject.trim().length<3 || draft.editable_body.trim().length<20) { this.notify('Subject ≥3 chars, body ≥20 chars.','error'); return; }
+          this.busyAction = draft.draft_id;
+          try {
+            await this.request(`/api/drafts/${encodeURIComponent(draft.draft_id)}/edit`, {method:'POST', body:JSON.stringify({subject:draft.editable_subject, body:draft.editable_body})});
+            this.notify('Edits saved.');
+            await this.fetchData();
+          } catch(e) { this.notify(`Save failed: ${e.message}`,'error'); }
+          finally { this.busyAction = ''; }
+        },
+
+        async rejectDraft(draft) {
+          if (!confirm(`Reject draft for ${draft.invoice_id}?`)) return;
+          this.busyAction = draft.draft_id;
+          try {
+            await this.request(`/api/drafts/${encodeURIComponent(draft.draft_id)}/reject`, {method:'POST'});
+            this.notify('Draft rejected.');
+            await this.fetchData();
+          } catch(e) { this.notify(`Reject failed: ${e.message}`,'error'); }
+          finally { this.busyAction = ''; }
+        },
+
+        get approvalIsPaid() { return this.currentDraft?.invoice_status==='PAID' || this.currentDraft?.payment_status==='PAID_CONFIRMED'; },
+
+        openApproveModal(draft) {
+          if (draft.status!=='PENDING_APPROVAL') return;
+          if (!this.health.ok) { this.notify('System offline. Refresh first.','error'); return; }
+          if (!draft.email) { this.notify('Client email missing.','error'); return; }
+          this.currentDraft = draft;
+          this.showApproveModal = true;
+        },
+
+        async confirmApprove() {
+          if (!this.currentDraft || this.currentDraft.status!=='PENDING_APPROVAL' || !this.health.ok || !this.currentDraft.email) return;
+          const draft = this.currentDraft;
+          this.busyAction = draft.draft_id;
+          try {
+            if (draft.editable_subject !== draft.subject || draft.editable_body !== draft.body) {
+              await this.request(`/api/drafts/${encodeURIComponent(draft.draft_id)}/edit`, {method:'POST', body:JSON.stringify({subject:draft.editable_subject, body:draft.editable_body})});
+            }
+            const r = await this.request(`/api/drafts/${encodeURIComponent(draft.draft_id)}/approve`, {method:'POST'});
+            this.showApproveModal = false; this.currentDraft = null;
+            const st = r.status||'done';
+            this.notify(r.message || `Status: ${st.replaceAll('_',' ').toLowerCase()}`, st==='FAILED'||st==='BLOCKED'?'error':'info');
+            await this.fetchData();
+          } catch(e) { this.notify(`Approval failed: ${e.message}`,'error'); }
+          finally { this.busyAction = ''; }
+        },
       };
     }
   </script>

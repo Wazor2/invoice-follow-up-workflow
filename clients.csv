@@ -1,6 +1,7 @@
 client_id,name,email,invoice_id,amount,invoice_date,due_date,status
-C001,Acme Components,acme@example.test,INV-1001,75500,2026-06-01,2026-06-20,PENDING
-C002,Bluebird Studio,bluebird@example.test,INV-1002,3200,2026-08-05,2026-08-20,PENDING
-C003,Cedar Works,cedar@example.test,INV-1003,24500,2026-07-15,2026-08-05,PENDING
-C004,No Email Trading,,INV-1004,18000,2026-07-01,2026-07-20,PENDING
-C005,Already Paid Co,paid@example.test,INV-1005,9100,2026-07-01,2026-07-25,PAID
+C001,Aarya Traders,accounts@aaryatraders.example,INV-1001,25000,2026-08-01,2026-08-31,PENDING
+C002,BlueStone Services,finance@bluestone.example,INV-1002,180000,2026-07-01,2026-07-31,PENDING
+C003,Cedar Systems,billing@cedar.example,INV-1003,50000,2026-08-01,2026-08-31,PENDING
+C004,Delta Retail,accounts@delta.example,INV-1004,30000,2026-08-01,2026-08-31,PENDING
+C005,Echo Labs,,INV-1005,12000,2026-08-01,2026-08-31,PENDING
+C006,Falcon Tech,tech@falcon.example,INV-1006,45000,2026-08-15,2026-09-01,PENDING

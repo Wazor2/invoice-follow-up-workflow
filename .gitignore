@@ -1,8 +1,32 @@
+# Google OAuth credentials and token
+credentials.json
+token.json
+
+# Environment files
 .env
-.venv/
+.env.*
+
+# Python
 __pycache__/
-.pytest_cache/
 *.py[cod]
+.venv/
+venv/
+
+# Streamlit
+.streamlit/secrets.toml
+
+# Local database and logs
+*.db
+*.db-shm
+*.db-wal
 *.sqlite
 *.sqlite3
-*.db
+logs/
+
+# Pytest
+.pytest_cache/
+.pytest_tmp/
+
+# IDE
+.idea/
+.vscode/

@@ -1,0 +1,410 @@
+PAYMENT-SAFETY DESIGN FOR AR COPILOT
+Preventing payment reminders after a client has paid
+
+1. Direct answer
+Never let the workflow decide to send a reminder from "invoice is overdue" alone. It must run a mandatory Payment Verification Gate immediately before every customer-facing send. If the payment status cannot be confirmed, the safe default is HOLD / HUMAN REVIEW, not "send reminder."
+
+The system should use multiple evidence sources, record exactly what it found, and stop all future reminders as soon as credible payment evidence appears. A customer saying "I paid" is enough to pause collection activity, but it is not necessarily enough to mark the invoice fully paid until finance/bank reconciliation confirms it.
+
+2. The correct business states
+
+Do not use a single status such as "Open" or "Paid." Use explicit states:
+
+OPEN
+Invoice has a remaining balance and no conflicting evidence.
+
+REMINDER_DRAFTED
+A draft exists but has not been approved or sent.
+
+AWAITING_APPROVAL
+A manager must approve the exact message before it is sent.
+
+PAYMENT_CLAIMED
+Customer email, portal, or staff note says payment was made. All reminders are paused. Finance must reconcile.
+
+PAYMENT_PENDING_RECONCILIATION
+A payment may be in the bank/accounting feed but is not matched conclusively to the invoice. All reminders are paused.
+
+PAID_CONFIRMED
+Accounting/bank/ERP source confirms the invoice is paid. Workflow is closed permanently for collection.
+
+DISPUTED
+A customer disputes amount, goods, service, or invoice details. All reminders are paused and finance/sales is assigned.
+
+SEND_BLOCKED
+The system cannot prove sending is safe: missing payment feed, stale data, failed check, missing contact, or contradictory evidence. Requires review.
+
+FOLLOW_UP_SENT
+A verified, approved reminder was sent. It may be eligible later for a new cycle only after another payment check.
+
+CLOSED
+No further action in this collection workflow.
+
+Key policy:
+PAYMENT_CLAIMED, PAYMENT_PENDING_RECONCILIATION, PAID_CONFIRMED, DISPUTED, SEND_BLOCKED, and CLOSED must be hard stop states. No reminder-sending transition is allowed from them.
+
+3. Mandatory Payment Verification Gate
+
+The gate runs twice.
+
+Gate A — Before draft creation
+Before creating a reminder draft, obtain the newest payment evidence. If payment-related evidence exists, do not draft a reminder.
+
+Gate B — Immediately before send
+After human approval but before calling Gmail send, perform the check again. This matters because a client can pay or reply after the draft was made and seconds before the manager clicks Send.
+
+Required algorithm:
+
+1. Lock the invoice/case row so two workers cannot process it at once.
+2. Re-read the invoice state from the source of truth.
+3. Query payment evidence from the accounting system, bank/payment feed, and Gmail.
+4. Query customer email replies that arrived after the earlier evidence check.
+5. Compare evidence timestamps with the last verification timestamp.
+6. If paid is confirmed, change state to PAID_CONFIRMED and cancel/withdraw the draft.
+7. If payment is claimed or likely but not confirmed, change state to PAYMENT_PENDING_RECONCILIATION, cancel/hold the draft, create a finance task, and do not send.
+8. If there is a dispute or conflicting information, change state to DISPUTED/SEND_BLOCKED and escalate.
+9. Only if all checks are fresh, consistent, and invoice balance remains positive may the workflow send the already-approved version.
+10. Write an audit event for the verification result, whether sending occurs or not.
+
+A validation failure must fail closed. For example, if the accounting API or Sheet cannot be read, the system must not assume the invoice is unpaid.
+
+4. Evidence hierarchy
+
+Use source trust levels. Do not rely only on email wording.
+
+Evidence source | Meaning | Workflow response
+Accounting/ERP invoice marked paid with transaction reference | Strong confirmation | PAID_CONFIRMED; close collection case
+Bank/payment-gateway transaction matched to invoice/reference and amount | Strong confirmation | PAID_CONFIRMED; close collection case
+Accounting/ERP shows payment received but unmatched | Strong probable signal | PAYMENT_PENDING_RECONCILIATION; ask finance to match it
+Customer email says "paid", includes UTR/reference/receipt | Customer claim | PAYMENT_CLAIMED; pause reminders and create reconciliation task
+Customer email says "will pay tomorrow" | Promise, not payment | Store promise date; pause until promise date or policy says review
+Customer sends payment screenshot | Possible claim | PAYMENT_CLAIMED; finance verifies screenshot/transaction
+Internal finance note says paid | Internal claim | PAYMENT_PENDING_RECONCILIATION unless supported by accounting record
+No new evidence and confirmed positive balance | Eligible only after other checks | May proceed to approval/send
+
+Important: A payment claim is a stop signal, not proof of settlement. This prevents embarrassing reminders while preserving financial controls.
+
+5. Data model additions
+
+Add these fields to the invoice/case database:
+
+payment_status
+Values: UNPAID, PAYMENT_CLAIMED, PENDING_RECONCILIATION, PAID_CONFIRMED, UNKNOWN.
+
+payment_verification_status
+Values: VERIFIED_CLEAR_TO_CONTACT, PAID, PENDING, FAILED, STALE, CONFLICT.
+
+last_payment_check_at
+UTC timestamp of the latest successful cross-source verification.
+
+payment_evidence_json
+Stores source, external reference, received time, amount, currency, matched invoice ID, confidence, and raw-message hash/redacted snippet.
+
+accounting_updated_at
+Timestamp from accounting/Sheet/ERP source.
+
+payment_hold_until
+For a customer promise date or a finance-review SLA.
+
+reminder_generation_version
+Increment whenever payment/invoice/contact evidence changes. An approval is valid only for the version approved.
+
+approved_version
+The data version on which the manager approved the email.
+
+send_idempotency_key
+A deterministic key, for example:
+sha256(invoice_id + reminder_cycle + recipient_email + approved_version)
+
+sent_gmail_message_id
+Persist immediately after a confirmed Gmail send.
+
+next_action
+Examples: RECONCILE_PAYMENT, REQUEST_REFERENCE, WAIT_UNTIL_PROMISE_DATE, FOLLOW_UP, ESCALATE.
+
+6. Required state-transition rules
+
+The backend—not the UI and not an LLM—must enforce these rules.
+
+- Only OPEN or FOLLOW_UP_SENT may enter REMINDER_DRAFTED.
+- REMINDER_DRAFTED may enter AWAITING_APPROVAL only after payment verification is clear.
+- AWAITING_APPROVAL may enter SENDING only when:
+  a) approved_version == reminder_generation_version,
+  b) payment_verification_status == VERIFIED_CLEAR_TO_CONTACT,
+  c) last_payment_check_at is within a very short freshness window, e.g. 5 minutes,
+  d) outstanding balance is positive,
+  e) invoice is not disputed,
+  f) no payment hold is active,
+  g) no send idempotency record already exists.
+- Any detected payment claim can transition any active reminder state to PAYMENT_CLAIMED or PAYMENT_PENDING_RECONCILIATION.
+- PAID_CONFIRMED and DISPUTED cannot transition to SENDING.
+- Changes to amount, due date, recipient, payment status, dispute status, or new customer reply invalidate approval: increment reminder_generation_version and return to a non-send state.
+
+7. Recommended source architecture
+
+For a hackathon MVP, use three sources:
+
+1. Google Sheets
+- Acts as the invoice list and simple finance status source.
+- Add columns: payment_status, payment_reference, accounting_updated_at, outstanding_amount, dispute_flag.
+- A finance user updates paid status or uploads/imports a bank matching CSV.
+
+2. Gmail API
+- Search threads related to invoice ID and customer email.
+- Classify replies into PAID_CLAIM, PAYMENT_PROMISE, DISPUTE, REQUEST_COPY, OTHER.
+- Gmail message search/list APIs can retrieve mailbox messages; sending is a separate Gmail API operation. Keep collection and sending in separate functions/scopes where possible.
+
+3. SQLite audit/state database
+- Keeps durable case state, versioning, approvals, locks, exact audit events, action outcomes, idempotency keys, and sent Gmail IDs.
+- Never treat only the Sheet as the workflow engine because Sheets does not safely protect concurrent state transitions by itself.
+
+Best realistic upgrade:
+Replace the Sheet payment field with a read-only integration to the actual accounting system, payment gateway, or bank-reconciliation export. Examples include Zoho Books, Tally export, QuickBooks, Razorpay/Stripe payment records, or an internal ERP API. The workflow should read payment facts from the most authoritative available source.
+
+8. Gmail-specific detection strategy
+
+Search for the invoice ID, customer email, and recent reply window. Search should target relevant conversations, then fetch full thread/message content for classification.
+
+Example query ideas:
+- from:customer@example.com "INV-1001"
+- from:customer@example.com newer_than:14d
+- subject:("INV-1001") newer_than:30d
+
+Do not treat a broad keyword match as definitive evidence. Match invoice ID, customer identity, date, currency, amount, payment reference, and/or thread linkage where available.
+
+Rule-based first classifier:
+- Paid claim keywords: paid, payment made, transferred, remitted, UTR, transaction ID, receipt attached.
+- Promise keywords: will pay, payment by, scheduled, process payment.
+- Dispute keywords: incorrect, wrong amount, dispute, duplicate invoice, not received, credit note.
+
+Use an optional LLM only to map message text into fixed labels and a short evidence summary. Require strict JSON and preserve the source message ID. Low confidence or conflicting classification must generate HUMAN_REVIEW_REQUIRED, never an automatic reminder.
+
+9. Handling the dangerous timing race
+
+Problem example:
+09:00 workflow creates a reminder.
+09:05 manager approves it.
+09:06 client pays and emails a receipt.
+09:10 workflow sends the old reminder.
+
+Solution: approval is not a permanent permission to send. Approval is valid only for a specific data/evidence version. Immediately before send:
+
+- Lock invoice row.
+- Check whether the case version changed after approval.
+- Search Gmail for replies after the previous check.
+- Re-read current payment source/outstanding balance.
+- If any relevant event exists, invalidate approval, increment version, transition to payment/dispute review, and notify the manager.
+- Only then issue Gmail send.
+
+Use a freshness limit such as five minutes for the final payment check. For high-value invoices, require a live accounting refresh rather than relying on cached spreadsheet data.
+
+10. Preventing repeat reminders and duplicate sends
+
+There are two separate problems:
+
+A. Sending a reminder after payment
+Solved by Payment Verification Gate, hard stop states, evidence versioning, final pre-send recheck, and fail-closed behavior.
+
+B. Sending the same reminder twice because of retries/crashes
+Solved by idempotency and a durable operation journal.
+
+Before Gmail send:
+- Calculate a deterministic send_idempotency_key.
+- Insert an operation row with status SEND_INTENT_CREATED using a database unique constraint on the key.
+- If that key already has SENT status or a Gmail message ID, do not call Gmail send again.
+- Perform Gmail send.
+- Persist Gmail message ID and status SENT immediately.
+- Update Sheets only after sending; if Sheet update fails, retry only the Sheet update, never Gmail send.
+
+If network timeout occurs after the Gmail call, outcome is unknown. Do not blindly retry. First reconcile by searching the Sent mailbox and/or stored thread/message metadata using the unique tracking token described below. If the message is found, record it as sent; otherwise route to human review or a carefully controlled retry.
+
+Idempotency is the standard protection for repeat processing: the same logical operation should produce the same effect once, even if a worker retries. Persistent keys and upserts/unique constraints are recommended patterns for durable execution. [web:50][web:55]
+
+11. Add a transparent tracking token
+
+Add a non-sensitive deterministic token to the email headers or body/footer, for example:
+
+X-AR-Workflow-ID: wf_8f4c...
+X-AR-Invoice-ID: INV-1001
+
+Or use a plain-text footer:
+Reference: AR-INV-1001-CYCLE-2
+
+This lets the system search Sent mail and audit the exact reminder cycle. Do not expose internal customer secrets in the token. The Gmail API supports listing mailbox messages and sending messages; store its returned message ID as the strongest send record. [web:52][web:53]
+
+12. Example safe pre-send pseudocode
+
+function safe_send_reminder(case_id, approved_draft):
+    begin database transaction
+    case = load_case_for_update(case_id)       # row lock
+
+    require case.state == AWAITING_APPROVAL
+    require case.approved_version == case.reminder_generation_version
+    require not operation_exists(case.send_idempotency_key, status="SENT")
+
+    payment_result = verify_payment_from_all_sources(case.invoice_id)
+    gmail_result = find_new_customer_replies(
+        customer=case.customer_email,
+        invoice_id=case.invoice_id,
+        after=case.last_payment_check_at
+    )
+
+    combined = evaluate_evidence(payment_result, gmail_result)
+    write_audit(case, "FINAL_PAYMENT_CHECK", combined)
+
+    if combined.confirmed_paid:
+        transition(case, PAID_CONFIRMED)
+        cancel_draft(case)
+        create_audit(case, "REMINDER_CANCELLED_PAYMENT_CONFIRMED")
+        commit transaction
+        return "NOT_SENT_PAID"
+
+    if combined.payment_claim or combined.payment_pending:
+        transition(case, PAYMENT_PENDING_RECONCILIATION)
+        cancel_draft(case)
+        create_finance_task(case, "Reconcile client payment claim")
+        commit transaction
+        return "NOT_SENT_PENDING_RECONCILIATION"
+
+    if combined.dispute or combined.failed_or_stale:
+        transition(case, SEND_BLOCKED)
+        cancel_draft(case)
+        create_human_task(case, combined.reason)
+        commit transaction
+        return "NOT_SENT_BLOCKED"
+
+    create_unique_send_operation(case.send_idempotency_key, status="SEND_INTENT_CREATED")
+    transition(case, SENDING)
+    commit transaction
+
+    try:
+        gmail_message_id = gmail_send(approved_draft)
+        record_send_success(case, gmail_message_id)
+        update_sheet_status_with_retry(case.invoice_id, "Follow-up sent")
+        transition(case, FOLLOW_UP_SENT)
+        write_audit(case, "REMINDER_SENT", gmail_message_id)
+        return "SENT"
+    except Timeout:
+        mark_operation(case, "UNKNOWN_OUTCOME")
+        if find_sent_message_by_tracking_token(case.workflow_reference):
+            record_send_success(case, found_message_id)
+            return "SENT_RECONCILED"
+        transition(case, SEND_BLOCKED)
+        create_human_task(case, "Gmail send outcome unknown; do not retry automatically")
+        return "NOT_SENT_UNKNOWN"
+
+13. Database constraints to implement
+
+Use database constraints because code checks alone can fail under concurrent workers.
+
+- UNIQUE(send_idempotency_key) on send_operations.
+- UNIQUE(invoice_id, active_reminder_cycle) where appropriate.
+- Foreign key from audit_events to workflow_cases.
+- Optimistic concurrency field version_number; updates use:
+  UPDATE workflow_cases
+  SET state = ?, version_number = version_number + 1
+  WHERE workflow_id = ? AND version_number = ?
+- Check constraint that a SENT state requires sent_gmail_message_id.
+- Check constraint / application validation that PAID_CONFIRMED cannot have next_action = FOLLOW_UP.
+
+14. Dashboard behavior
+
+Show payment safety visibly. The manager should never need to guess why the system stopped.
+
+Case screen should display:
+- Current state: PAYMENT_PENDING_RECONCILIATION, PAID_CONFIRMED, etc.
+- Current balance and timestamp from the payment source.
+- Last payment verification time.
+- Evidence sources and confidence/trust level.
+- Latest customer email snippet and Gmail message ID.
+- Approved draft version and whether it was invalidated.
+- Clear reason: "Reminder blocked: customer claimed payment at 09:06; finance reconciliation pending."
+- Buttons: Confirm paid, Mark unmatched payment, Request payment reference, Escalate to finance, Resume only after a new successful verification.
+
+15. Finance reconciliation task
+
+When a client says they paid, create an internal task, not another collection reminder.
+
+Task template:
+- Invoice: INV-1001
+- Customer: ABC Traders
+- Outstanding balance currently shown: INR 25,000
+- Customer claim timestamp: 2026-09-26 09:06 UTC
+- Evidence: Gmail message ID / receipt attachment link / stated UTR
+- Required action: Match bank/ERP transaction to invoice; confirm or reject claim
+- SLA: e.g., four business hours
+- Workflow behavior: reminders paused until resolution
+
+Finance outcomes:
+- Match found -> PAID_CONFIRMED, invoice balance set to zero, collection workflow CLOSED.
+- Partial payment -> update outstanding balance, decide whether a human approves a revised reminder.
+- No payment found -> keep PAYMENT_CLAIMED / PENDING for a configurable grace period; optionally send a human-approved request for transaction reference, not a standard overdue reminder.
+- Payment applied to wrong invoice -> correct accounting record and review communication manually.
+
+16. Recommended policy rules
+
+- Never send a reminder within a payment-posting grace period after due date, e.g. 1–3 business days, because bank/ERP postings can lag.
+- Never auto-send another reminder if a customer reply is unread/unclassified.
+- After a payment claim, pause at least until finance reconciliation or a defined SLA expires.
+- Cap automatic reminder cadence: for example, maximum one standard reminder every 7 days and maximum two before mandatory human review. Use company policy rather than hard-coded values in production.
+- High-value invoices require manager approval and live payment-source verification.
+- Require a new approval whenever recipient, amount, due date, invoice status, or evidence changes.
+- Treat data-source failure as SEND_BLOCKED, not unpaid.
+
+17. Test cases for the prototype
+
+Test 1: Confirmed payment before drafting
+- Sheet/ERP says paid; invoice was previously overdue.
+- Expected: PAID_CONFIRMED, no draft, audit logs decision.
+
+Test 2: Client replies "Paid today; UTR 12345"
+- Gmail reply arrives before approval.
+- Expected: PAYMENT_CLAIMED/PENDING_RECONCILIATION, no send, finance task created.
+
+Test 3: Client pays after approval
+- Approve draft, inject customer payment email, then click send.
+- Expected: final gate finds evidence, invalidates approval, cancels send.
+
+Test 4: Payment posting lag
+- Client paid, but bank feed has not updated; email contains receipt.
+- Expected: pause; request reconciliation, not send reminder.
+
+Test 5: Partial payment
+- Accounting shows payment of INR 10,000 against INR 25,000.
+- Expected: balance changes to INR 15,000; existing draft invalidated; revised message needs fresh approval.
+
+Test 6: Gmail timeout after sending
+- Simulate timeout after API request.
+- Expected: search Sent by tracking token/message metadata; do not issue a second send.
+
+Test 7: Accounting source unavailable
+- Sheet/API lookup fails during final gate.
+- Expected: SEND_BLOCKED and human-review task; never send automatically.
+
+Test 8: Duplicate scheduler job
+- Run same workflow twice simultaneously.
+- Expected: database lock/unique idempotency key allows only one send attempt.
+
+18. Minimal MVP implementation order
+
+1. Add payment_status and payment_verification_status fields to Sheets and SQLite.
+2. Implement hard stop state-transition guard in Python.
+3. Add Gmail reply search/classification for PAID_CLAIM and DISPUTE.
+4. Add final pre-send recheck in the exact function that calls Gmail send.
+5. Add versioning so fresh evidence invalidates old approval.
+6. Add send idempotency key + operation journal + Gmail message ID storage.
+7. Build finance reconciliation queue in Streamlit.
+8. Add the eight automated/manual demo tests above.
+
+19. Final design rule
+
+The workflow must be conservative around money and customer communication:
+
+"Unknown payment status is not the same as unpaid. Any payment evidence, data conflict, or verification failure pauses the reminder and sends the case to reconciliation or human review."
+
+That single rule, enforced in the backend state machine and final pre-send gate, is the core solution to preventing reminders after payment.
+
+Sources consulted
+- Gmail API documentation/search results: Gmail message-list operations support searching/listing mailbox messages, while sending is a separate message-send operation. This supports a pre-send Gmail evidence check and a separately controlled send operation.
+- AWS Durable Execution idempotency guidance: duplicate requests should be treated through stored operation outcomes/idempotency rather than blindly repeated; stable keys and database upserts are practical safeguards.
+- Microsoft Azure Idempotent Consumer pattern: keep a deduplication store keyed by the logical operation and return/acknowledge its recorded outcome on repeats.

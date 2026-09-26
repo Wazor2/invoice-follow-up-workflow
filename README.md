@@ -10,6 +10,12 @@ A local, multi-step accounts-receivable workflow built with FastAPI, SQLite, Oll
 
 ## Start locally
 
+### Windows Quickstart (1-Click)
+- **Setup**: Double-click `setup.bat` (or run `setup.bat` in CMD) to create `.venv`, install all packages, configure `.env`, initialize SQLite, and verify Google OAuth.
+- **Launch**: Double-click `launch.bat` (or run `launch.bat` in CMD) to start the server and automatically launch the dashboard in your default browser at <http://127.0.0.1:8000>.
+- **Google API Menu**: Double-click `test_google_apis.bat` to test OAuth login, Gmail read/search/send, and Google Sheets access.
+
+### Manual Command Line
 ```bash
 cd invoice-follow-up
 python -m venv .venv

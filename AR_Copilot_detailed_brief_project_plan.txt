@@ -1,0 +1,1049 @@
+INTELLIGENT BUSINESS WORKFLOW AUTOMATION
+PROJECT: AR COPILOT — INBOX-TO-RESOLUTION
+
+1. PROJECT SUMMARY
+
+AR Copilot is a Gmail-connected workflow automation system for small and medium businesses that tracks overdue customer invoices.
+
+Instead of behaving like a chatbot, it completes a real workflow:
+
+1. Reads invoice data from Google Sheets.
+2. Finds overdue unpaid invoices.
+3. Searches Gmail for customer replies and payment/dispute evidence.
+4. Decides the correct next action using business rules.
+5. Prioritizes cases.
+6. Generates a follow-up email draft.
+7. Waits for manager approval.
+8. Sends email through Gmail only after approval.
+9. Updates the spreadsheet.
+10. Records every action in an audit trail.
+11. Retries failed steps without sending duplicate emails.
+
+Project name for presentation:
+"AR Copilot: Intelligent Overdue Invoice Resolution System"
+
+Tagline:
+"From inbox and spreadsheet chaos to traceable, approval-controlled invoice follow-up."
+
+
+2. BUSINESS PROBLEM
+
+Many SMEs maintain invoices in Excel or Google Sheets and communicate with customers through Gmail. Employees manually:
+
+- Check which invoices are overdue.
+- Search old emails for payment promises or disputes.
+- Decide which customers should be contacted first.
+- Write follow-up emails.
+- Ask a manager for approval.
+- Update the spreadsheet after mailing.
+- Follow up again if no reply arrives.
+
+This causes delay, missed invoices, duplicate messages, weak traceability, and inconsistent customer communication.
+
+
+3. BUSINESS OBJECTIVE
+
+Automate the invoice collection follow-up workflow while keeping humans in control of important customer communication.
+
+Objective statement:
+"Identify overdue invoices, gather email and spreadsheet evidence, determine the correct action, draft and execute approved follow-ups, and maintain a complete traceable history."
+
+
+4. MAIN USERS
+
+- Accounts receivable employee
+- Finance manager
+- Business owner
+- Sales/account manager
+
+
+5. WORKFLOW INPUTS AND OUTPUTS
+
+Inputs:
+
+- Google Sheet containing invoice information
+- Gmail mailbox containing customer conversations
+- Optional invoice PDF or Google Drive link
+- Business rules: reminder interval, escalation limits, high-value threshold
+- Manager approval/rejection/edit decision
+
+Outputs:
+
+- Prioritized work queue
+- Customer-specific email drafts
+- Escalation tasks
+- Updated invoice status in Google Sheets
+- Sent email record/Gmail message ID
+- Audit trail and status dashboard
+
+
+6. CORE DEMO SCENARIO
+
+The system discovers an invoice that is overdue by 15 days for INR 25,000.
+
+It performs these actions:
+
+1. Reads the invoice from Google Sheets.
+2. Searches Gmail using invoice ID and customer email.
+3. Finds no payment confirmation and no dispute.
+4. Calculates priority as Medium.
+5. Creates a polite payment reminder draft.
+6. Displays the draft to the manager.
+7. Manager clicks Approve.
+8. System checks Gmail one more time for new payment/dispute mail.
+9. System sends the approved email through Gmail API.
+10. System updates the Google Sheet status to "Follow-up sent".
+11. System records all actions in SQLite audit log.
+
+This proves end-to-end workflow automation.
+
+
+7. REQUIRED FEATURES MAPPING
+
+Challenge requirement: Understanding business objective
+Implementation: The goal is to reduce overdue invoice follow-up work while avoiding unauthorized customer contact.
+
+Challenge requirement: Information gathering from multiple sources
+Implementation: Google Sheets gives invoice data; Gmail gives payment/dispute context; optional Drive/local files give invoice documents.
+
+Challenge requirement: Multi-step planning and execution
+Implementation: Detect -> Search mail -> Classify -> Prioritize -> Draft -> Approval -> Send -> Update Sheet -> Audit.
+
+Challenge requirement: Documents, spreadsheets, database, APIs, emails
+Implementation: Google Sheets API, Gmail API, SQLite, optional Google Drive.
+
+Challenge requirement: Missing information/failed tasks
+Implementation: Cases with missing email, unavailable invoice document, Gmail failure, or Sheet failure move into dedicated states and create a human task/retry.
+
+Challenge requirement: Dynamic replanning
+Implementation: Before send, Gmail is checked again. A new payment confirmation cancels the reminder; a dispute changes the route to escalation.
+
+Challenge requirement: Human approval
+Implementation: The manager must explicitly approve an editable email draft. No mail can be sent from an unapproved workflow state.
+
+Challenge requirement: Audit trail
+Implementation: Every action, state change, external ID, time, actor, result, and error is saved in SQLite.
+
+
+8. SYSTEM ARCHITECTURE
+
+                  +-----------------------+
+                  | Streamlit Dashboard   |
+                  | Approval + Audit UI   |
+                  +-----------+-----------+
+                              |
+                              v
+                  +-----------------------+
+                  | Python Workflow Core  |
+                  | Rules + State Machine |
+                  +-----+----------+------+
+                        |          |
+             +----------+          +-----------+
+             v                                 v
++---------------------------+       +---------------------------+
+| Gmail API                 |       | Google Sheets API         |
+| Search, read, send, label |       | Read invoices, update row |
++---------------------------+       +---------------------------+
+                        |
+                        v
+                  +-----------------------+
+                  | SQLite Database       |
+                  | Cases + audit events  |
+                  +-----------------------+
+
+Optional component:
+
++-----------------------+
+| Ollama local LLM      |
+| Reply classification  |
+| Draft improvement     |
++-----------------------+
+
+The application must work even when Ollama is unavailable. Rules and templates remain the mandatory fallback.
+
+
+9. TECHNOLOGY STACK
+
+Technology: Python 3.11+
+Purpose: Backend, workflow processing, Google API clients
+Cost: Free
+
+Technology: Streamlit
+Purpose: Fast approval dashboard, work queue, audit screen
+Cost: Free/open source
+
+Technology: FastAPI
+Purpose: Optional clean backend REST API; useful if separating UI and workflow worker
+Cost: Free/open source
+
+Technology: SQLite
+Purpose: Local persistent database for workflow states and audit logs
+Cost: Free
+
+Technology: Gmail API
+Purpose: Search customer email threads, read evidence, send approved messages, apply labels
+Cost: No separate API cost for ordinary usage; subject to Google policy/quota
+
+Technology: Google Sheets API
+Purpose: Read/update invoice records
+Cost: No separate API cost for ordinary usage; subject to Google policy/quota
+
+Technology: Pydantic
+Purpose: Validate invoice, evidence, plan, approval, and tool response data
+Cost: Free/open source
+
+Technology: APScheduler
+Purpose: Daily workflow run and retry scheduling
+Cost: Free/open source
+
+Technology: Tenacity
+Purpose: Controlled retry logic for temporary API/network failures
+Cost: Free/open source
+
+Technology: Ollama, optional
+Purpose: Run a local LLM for constrained email intent classification and improved draft tone
+Cost: Free/open source software; requires local computer resources
+
+Recommended deployment for prototype:
+Run locally on a laptop. This is free and avoids cloud cost.
+
+
+10. WHY THIS TECHNIQUE IS CORRECT
+
+Use a controlled workflow state machine, not an unrestricted AI agent.
+
+Reason:
+
+- Financial reminders affect customer relationships.
+- The system must be predictable and auditable.
+- Rules should control decisions that affect money, recipients, status, and email sending.
+- AI can help understand unstructured email text but cannot bypass approval or business rules.
+
+Use a hybrid intelligence design:
+
+Deterministic logic handles:
+
+- Invoice overdue calculations
+- Priority score
+- Required data checks
+- State transitions
+- Approval gate
+- Retry logic
+- Duplicate-send protection
+- Sheet status updates
+
+Optional local LLM handles only:
+
+- Classification of reply intent
+- Short summary of latest email thread
+- Improvement of draft wording
+
+The LLM must return restricted JSON, such as:
+
+{
+  "intent": "paid | payment_promised | dispute | incorrect_contact | no_response | other",
+  "confidence": 0.92,
+  "summary": "Customer says payment will be made on Friday."
+}
+
+If the model fails, returns invalid JSON, or confidence is low, route the case to HUMAN_REVIEW_REQUIRED.
+
+
+11. WORKFLOW STATES
+
+NEW
+Invoice has been detected but not processed.
+
+COLLECTED
+Invoice record has been read and validated.
+
+ENRICHED
+Gmail evidence and optional invoice document evidence have been collected.
+
+CLASSIFIED
+Business rules classify the case.
+
+PLANNED
+System created a concrete sequence of next actions.
+
+AWAITING_APPROVAL
+Draft is ready and waiting for a manager.
+
+APPROVED
+Manager has explicitly approved the current version of the draft.
+
+SENDING
+The Gmail send action has started.
+
+SENT
+Gmail returned a message ID confirming the send.
+
+SHEET_UPDATED
+Spreadsheet has been updated successfully.
+
+CLOSED
+Workflow is complete.
+
+RESOLVED_PENDING_RECONCILIATION
+Email evidence says customer already paid. Finance must reconcile payment; no reminder is sent.
+
+ESCALATED
+A dispute, high-risk/high-value case, or special exception requires a finance manager.
+
+MISSING_INFO
+Required email, invoice document, amount, or contact information is missing.
+
+SEND_FAILED
+Gmail send attempt failed and needs controlled retry.
+
+BLOCKED
+A policy or data condition prevents further automated action.
+
+
+12. BUSINESS RULES
+
+Invoice eligibility rule:
+
+Process only if:
+
+- status is Open or Partially Paid
+- outstanding_amount is greater than zero
+- due_date is before today
+
+Payment evidence rule:
+
+If Gmail evidence contains payment confirmation, payment reference, or receipt language, move to RESOLVED_PENDING_RECONCILIATION. Do not send reminder.
+
+Dispute rule:
+
+If email indicates wrong amount, incorrect goods/services, duplicate invoice, missing PO, or dispute, move to ESCALATED. Do not send reminder.
+
+Missing contact rule:
+
+If customer email is absent or invalid, move to MISSING_INFO and assign task to finance/sales.
+
+High-value rule:
+
+If outstanding amount is above configured threshold, for example INR 100,000, mark High/Critical and require senior manager approval.
+
+Repeated follow-up rule:
+
+If two or more previous follow-ups exist, escalate or use a manager-reviewed escalation draft. Do not automatically send aggressive communication.
+
+New evidence rule:
+
+Before sending, re-check Gmail. If new payment/dispute evidence appears, cancel the pending reminder and re-plan.
+
+
+13. PRIORITY LOGIC
+
+Example formula:
+
+priority_score = 2 x days_overdue + 0.02 x outstanding_amount_INR + 40 if previous_followups >= 2
+
+Example priority bands:
+
+0 to 30: Low
+31 to 70: Medium
+71 to 130: High
+131 or above: Critical
+
+Example:
+
+Invoice is 25 days overdue, INR 75,000 outstanding, and has one previous reminder.
+
+Score = 2 x 25 + 0.02 x 75000
+Score = 50 + 1500
+Score = 1550
+Priority = Critical
+
+For an actual business, tune the formula and thresholds with finance staff. The important part is to store inputs and result in the audit log so priority can be explained.
+
+
+14. GMAIL INTEGRATION
+
+Gmail functions:
+
+- Search for customer threads by invoice ID and customer email.
+- Retrieve relevant message metadata/body text.
+- Detect payment, dispute, promise-to-pay, out-of-office, and no-response indicators.
+- Create and send approved customer email.
+- Return and store Gmail message ID.
+- Optionally apply labels such as AR-Copilot/Follow-up, AR-Copilot/Escalated, or AR-Copilot/Resolved.
+
+Recommended search query format:
+
+from:customer@example.com "INV-1001"
+
+or:
+
+("INV-1001" OR "Invoice INV-1001") customer@example.com
+
+Gmail OAuth setup:
+
+1. Create a Google Cloud project.
+2. Enable Gmail API.
+3. Enable Google Sheets API.
+4. Configure OAuth consent screen.
+5. Add your demo Gmail address as a test user if app is in testing mode.
+6. Create OAuth Client ID of type Desktop application.
+7. Download credentials.json.
+8. Keep credentials.json outside Git.
+9. First run opens Google login/consent page.
+10. Save generated token.json locally and ignore it in Git.
+
+Recommended scopes:
+
+- gmail.readonly: read threads/evidence
+- gmail.send: send approved email
+- gmail.modify: only if applying labels/marking messages
+- spreadsheets: read/update the selected invoice sheet
+
+Never use broad OAuth permissions unless required.
+
+
+15. GOOGLE SHEETS STRUCTURE
+
+Create spreadsheet: AR_DEMO_INVOICES
+
+Required columns:
+
+invoice_id
+customer_name
+customer_email
+invoice_date
+due_date
+original_amount
+outstanding_amount
+currency
+status
+last_follow_up
+next_follow_up
+previous_followups
+dispute_flag
+invoice_link
+workflow_id
+
+Example rows:
+
+INV-1001, Aarya Traders, accounts@aaryatraders.example, 2026-08-01, 2026-08-31, 25000, 25000, INR, Open, , , 0, FALSE, https://example.com/invoices/INV-1001.pdf, 
+
+INV-1002, BlueStone Services, finance@bluestone.example, 2026-07-01, 2026-07-31, 180000, 180000, INR, Open, 2026-09-01, , 2, FALSE, https://example.com/invoices/INV-1002.pdf, 
+
+INV-1003, Cedar Systems, billing@cedar.example, 2026-08-01, 2026-08-31, 50000, 50000, INR, Open, , , 0, FALSE, https://example.com/invoices/INV-1003.pdf, 
+
+INV-1004, Delta Retail, accounts@delta.example, 2026-08-01, 2026-08-31, 30000, 30000, INR, Open, , , 0, FALSE, https://example.com/invoices/INV-1004.pdf, 
+
+INV-1005, Echo Labs, , 2026-08-01, 2026-08-31, 12000, 12000, INR, Open, , , 0, FALSE, https://example.com/invoices/INV-1005.pdf, 
+
+
+16. REQUIRED DEMO CASES
+
+Case 1: Normal follow-up
+Invoice: INV-1001
+Condition: 7 days overdue; no relevant customer reply
+Expected: Draft created -> manager approves -> Gmail sends -> Sheet updated -> audit complete
+
+Case 2: High-value escalation
+Invoice: INV-1002
+Condition: High amount and two previous reminders
+Expected: Critical priority -> senior approval/escalation -> no automatic send
+
+Case 3: Payment already made
+Invoice: INV-1003
+Condition: Gmail reply says "Payment has been made today, reference UTR12345"
+Expected: RESOLVED_PENDING_RECONCILIATION -> no reminder
+
+Case 4: Customer dispute
+Invoice: INV-1004
+Condition: Gmail reply says "The amount is incorrect. Please check the invoice."
+Expected: ESCALATED -> finance task -> no reminder
+
+Case 5: Missing information
+Invoice: INV-1005
+Condition: customer_email empty
+Expected: MISSING_INFO -> task to fill contact -> no email
+
+Case 6: Send failure
+Invoice: INV-1006
+Condition: mock Gmail client throws temporary error on first send
+Expected: SEND_FAILED -> retry queue -> second attempt succeeds -> exactly one sent email
+
+
+17. HUMAN APPROVAL DESIGN
+
+Before an email is sent, show the manager:
+
+- Customer name and email address
+- Invoice ID
+- Due date
+- Outstanding amount
+- Days overdue
+- Priority and reason
+- Last email evidence/summary
+- Proposed action
+- Email subject
+- Full email content
+- Attachment/invoice link if available
+
+Manager options:
+
+- Approve and send
+- Edit then approve
+- Reject
+- Escalate
+- Request missing information
+
+Hard security rule:
+
+The Gmail send function must check:
+
+case.state == "APPROVED"
+case.approval_status == "APPROVED"
+
+If either condition is false, raise an error and do not call Gmail API.
+
+
+18. EMAIL TEMPLATE
+
+Subject: Reminder: Invoice {invoice_id} — Outstanding balance {currency} {outstanding_amount}
+
+Hello {customer_name},
+
+I hope you are well.
+
+Our records show that invoice {invoice_id}, due on {due_date}, has an outstanding balance of {currency} {outstanding_amount}.
+
+Could you please confirm the expected payment date? If payment has already been made, please disregard this reminder and share the payment reference so we can reconcile our records.
+
+Invoice link: {invoice_link}
+
+Thank you,
+
+{company_name}
+Accounts Receivable
+
+Do not use threats, legal claims, fees, or account suspension language unless company policy explicitly permits it and a qualified manager approves it.
+
+
+19. DATABASE DESIGN
+
+Table: workflow_cases
+
+workflow_id: unique workflow UUID
+invoice_id: invoice identifier
+state: current workflow state
+priority_score: numeric value
+priority_level: Low/Medium/High/Critical
+evidence_json: Gmail findings and rule evidence
+plan_json: step-by-step plan
+draft_subject: proposed subject
+draft_body: proposed content
+approval_status: Pending/Approved/Rejected
+approver: manager email/name
+approval_time: timestamp
+gmail_thread_id: related Gmail thread
+gmail_message_id: sent message ID
+retry_count: number of attempts
+last_error: latest error message
+created_at: timestamp
+updated_at: timestamp
+
+Table: audit_events
+
+event_id: unique event UUID
+workflow_id: linked workflow
+sequence_no: chronological sequence
+timestamp: UTC timestamp
+actor: system/manager
+action: e.g. SEARCH_GMAIL, CREATE_DRAFT, APPROVE, SEND_EMAIL
+prior_state: state before action
+new_state: state after action
+input_summary: safe/redacted input summary
+output_summary: action result
+external_reference: Gmail ID or Sheet row reference
+success: true/false
+error_code: optional error code
+error_message: optional safe error detail
+
+
+20. AUDIT TRAIL EXAMPLE
+
+2026-09-26T10:00:01Z | system | CASE_CREATED | NEW -> COLLECTED | INV-1001 loaded from Sheet | success
+
+2026-09-26T10:00:04Z | system | GMAIL_SEARCH | COLLECTED -> ENRICHED | Query: INV-1001 + customer address | 0 relevant reply | success
+
+2026-09-26T10:00:05Z | system | CLASSIFY | ENRICHED -> CLASSIFIED | 7 overdue days; no payment/dispute | FOLLOW_UP | success
+
+2026-09-26T10:00:06Z | system | CREATE_DRAFT | CLASSIFIED -> AWAITING_APPROVAL | Template v1 | Draft ready | success
+
+2026-09-26T10:03:00Z | manager@company | APPROVE | AWAITING_APPROVAL -> APPROVED | Approved edited draft | success
+
+2026-09-26T10:03:03Z | system | GMAIL_SEND | APPROVED -> SENT | Recipient masked | Gmail ID: 18xxxx | success
+
+2026-09-26T10:03:04Z | system | UPDATE_SHEET | SENT -> SHEET_UPDATED | Status Follow-up sent | row 2 updated | success
+
+2026-09-26T10:03:04Z | system | CLOSE_CASE | SHEET_UPDATED -> CLOSED | Workflow complete | success
+
+
+21. FAILURE HANDLING AND DYNAMIC REPLANNING
+
+Problem: Gmail API temporarily fails during send
+Action: Set SEND_FAILED, log error, retry later using exponential backoff.
+
+Backoff example:
+
+- First retry after 5 minutes
+- Second retry after 30 minutes
+- Third retry after 2 hours
+- Then escalate to human
+
+Problem: Send succeeded but Sheet update failed
+Action: Store Gmail message ID immediately. Retry only Sheet update. Never resend email.
+
+Problem: Customer email missing
+Action: Move to MISSING_INFO. Create internal task for finance/sales. Do not draft/send.
+
+Problem: New payment confirmation arrives before approved email is sent
+Action: Re-check Gmail at send time. Cancel reminder. Move to RESOLVED_PENDING_RECONCILIATION.
+
+Problem: Customer opens a dispute
+Action: Move to ESCALATED. Stop future automatic reminders for that invoice.
+
+Problem: LLM unavailable or uncertain
+Action: Use deterministic rules/template. Mark case for human review if intent cannot be determined safely.
+
+Problem: Duplicate workflow run
+Action: Use invoice_id + action type + workflow period as idempotency key. Load existing open case instead of creating a duplicate.
+
+
+22. IDEMPOTENCY LOGIC
+
+Do not rely only on UI buttons. Persist action results.
+
+Example idempotency key:
+
+{invoice_id}:{workflow_cycle_date}:SEND_EMAIL
+
+Before Gmail send:
+
+- Check if an audit event already contains a successful GMAIL_SEND for this key.
+- If yes, do not send again.
+- If no, send after approval.
+- Immediately save Gmail message ID.
+
+This prevents duplicate collection emails when user refreshes the page, server restarts, or retry is triggered.
+
+
+23. PROJECT FOLDER STRUCTURE
+
+ar-copilot/
+
+app.py
+Streamlit dashboard
+
+workflow.py
+State machine, orchestration, routing, replanning
+
+models.py
+Pydantic request/data models
+
+rules.py
+Priority and business action rules
+
+gmail_client.py
+Gmail OAuth, search, fetch messages, send, label
+
+sheets_client.py
+Google Sheets read and update operations
+
+db.py
+SQLite setup and repositories
+
+audit.py
+Audit event creation/query/export
+
+templates.py
+Email templates
+
+llm_client.py
+Optional Ollama JSON classification
+
+scheduler.py
+Scheduled job and retry tasks
+
+seed_demo.py
+Create test records/mock scenarios
+
+requirements.txt
+Python packages
+
+.env.example
+Configuration template
+
+.gitignore
+Ignore token.json, credentials.json, .env, database backups
+
+README.md
+Setup and demo instructions
+
+
+24. INSTALLATION COMMANDS
+
+Create environment:
+
+python -m venv .venv
+
+Windows:
+
+.venv\Scripts\activate
+
+Install packages:
+
+pip install streamlit fastapi uvicorn pydantic sqlalchemy google-api-python-client google-auth-httplib2 google-auth-oauthlib python-dotenv apscheduler tenacity pandas
+
+Optional LLM:
+
+pip install ollama
+
+Run application:
+
+streamlit run app.py
+
+Optional FastAPI service:
+
+uvicorn api:app --reload
+
+
+25. ENVIRONMENT CONFIGURATION
+
+Create .env file:
+
+GOOGLE_SHEET_ID=your_google_sheet_id
+GOOGLE_SHEET_RANGE=Invoices!A:Q
+COMPANY_NAME=Demo Company Pvt Ltd
+HIGH_VALUE_THRESHOLD_INR=100000
+MAX_FOLLOW_UPS=2
+EMAIL_SENDING_ENABLED=false
+TEST_MODE=true
+DATABASE_URL=sqlite:///ar_copilot.db
+
+Important:
+
+- Keep EMAIL_SENDING_ENABLED=false until the approval workflow is tested.
+- Never commit .env, credentials.json, token.json, or real customer data.
+- Use a dedicated demo Gmail account and synthetic data.
+
+
+26. CORE PSEUDOCODE
+
+function run_collection_cycle():
+    invoices = sheets.get_invoices()
+
+    for invoice in invoices:
+        if not rules.is_overdue_open_invoice(invoice):
+            continue
+
+        case = db.get_or_create_case(invoice)
+        audit.log(case, "CASE_COLLECTED")
+
+        if not rules.has_valid_email(invoice.customer_email):
+            workflow.transition(case, "MISSING_INFO")
+            tasks.create("Add customer contact", invoice)
+            continue
+
+        evidence = gmail.find_related_evidence(invoice.invoice_id, invoice.customer_email)
+        case.save_evidence(evidence)
+        audit.log(case, "GMAIL_SEARCH")
+
+        decision = rules.decide(invoice, evidence)
+
+        if decision.action == "RECONCILE_PAYMENT":
+            workflow.transition(case, "RESOLVED_PENDING_RECONCILIATION")
+            continue
+
+        if decision.action == "ESCALATE":
+            workflow.transition(case, "ESCALATED")
+            tasks.create("Finance review", invoice)
+            continue
+
+        draft = templates.create_followup(invoice, decision)
+        case.save_draft(draft)
+        workflow.transition(case, "AWAITING_APPROVAL")
+        audit.log(case, "DRAFT_CREATED")
+
+function approve_and_send(case_id, edited_draft, approver):
+    case = db.get_case(case_id)
+    require case.state == "AWAITING_APPROVAL"
+
+    case.approve(edited_draft, approver)
+    workflow.transition(case, "APPROVED")
+    audit.log(case, "APPROVED")
+
+    fresh_evidence = gmail.find_recent_evidence(case.invoice_id, case.customer_email)
+
+    if rules.payment_evidence_found(fresh_evidence):
+        workflow.transition(case, "RESOLVED_PENDING_RECONCILIATION")
+        audit.log(case, "SEND_CANCELLED_PAYMENT_FOUND")
+        return
+
+    if rules.dispute_evidence_found(fresh_evidence):
+        workflow.transition(case, "ESCALATED")
+        audit.log(case, "SEND_CANCELLED_DISPUTE_FOUND")
+        return
+
+    if db.was_successfully_sent(case.idempotency_key):
+        return
+
+    workflow.transition(case, "SENDING")
+
+    try:
+        gmail_message_id = gmail.send(case.draft)
+        db.record_send(case, gmail_message_id)
+        workflow.transition(case, "SENT")
+        sheets.mark_followup_sent(case.invoice_id, case.workflow_id)
+        workflow.transition(case, "SHEET_UPDATED")
+        workflow.transition(case, "CLOSED")
+    except TemporaryError as error:
+        workflow.transition(case, "SEND_FAILED")
+        retries.schedule(case)
+        audit.log_error(case, error)
+
+
+27. STREAMLIT UI DESIGN
+
+Page 1: Dashboard
+
+Show:
+
+- Total overdue amount
+- Open cases
+- Awaiting approval
+- Sent today
+- Escalated cases
+- Failed/retry cases
+- Cases by priority
+
+Page 2: Work Queue
+
+Columns:
+
+- Invoice ID
+- Customer
+- Amount
+- Days overdue
+- Priority
+- Current state
+- Recommended action
+- Last activity
+
+Filters:
+
+- Priority
+- State
+- Customer
+- Amount range
+- Days overdue
+
+Page 3: Case Detail
+
+Show:
+
+- Full invoice data
+- Related email evidence
+- Rule decision explanation
+- Priority score calculation
+- Workflow plan
+- Editable email subject/body
+- Approve, reject, escalate, retry buttons
+
+Page 4: Audit Trail
+
+Show:
+
+- Chronological timeline
+- Actor
+- State changes
+- External references
+- Failure details
+- CSV export
+
+Page 5: Settings
+
+Show:
+
+- Thresholds
+- Test mode
+- Email sending switch
+- Company name
+- Gmail/Sheets connection status
+
+
+28. SIMPLE API ENDPOINTS
+
+POST /workflow/run
+Runs collection cycle.
+
+GET /cases
+Lists cases with filters.
+
+GET /cases/{workflow_id}
+Returns case, evidence, draft, and audit records.
+
+POST /cases/{workflow_id}/approve
+Approves an editable email draft.
+
+POST /cases/{workflow_id}/reject
+Rejects draft and records manager note.
+
+POST /cases/{workflow_id}/escalate
+Moves case to finance escalation.
+
+POST /cases/{workflow_id}/retry
+Retries only failed safe action.
+
+GET /audit
+Returns audit events.
+
+GET /health
+Returns Gmail, Sheets, database, and scheduler connection status.
+
+
+29. IMPLEMENTATION SCHEDULE
+
+Day 1: Workflow foundation
+
+- Create Python project and virtual environment.
+- Create SQLite database/tables.
+- Add Pydantic models.
+- Build workflow states and transition validation.
+- Create CSV/mock connector so UI can be developed without Google setup.
+- Add audit log.
+
+Day 2: External integrations
+
+- Enable Gmail and Sheets APIs.
+- Implement OAuth.
+- Implement Sheets read/update.
+- Implement Gmail search/read.
+- Implement protected Gmail send.
+- Test using demo Gmail account only.
+
+Day 3: Dashboard and intelligence
+
+- Build Streamlit dashboard.
+- Add queue and case-detail screen.
+- Implement business rules and priorities.
+- Add templates and approval flow.
+- Add optional Ollama adapter.
+
+Day 4: Reliability and presentation
+
+- Add idempotency checks.
+- Add failure/retry paths.
+- Add dynamic re-check before send.
+- Create six demo cases.
+- Test all acceptance criteria.
+- Record backup demo video/screenshots.
+
+
+30. ACCEPTANCE TESTS
+
+Test 1: Overdue invoice no response
+Expected: Draft is created and waits for manager approval.
+
+Test 2: Manager approval
+Expected: One email is sent, Gmail message ID stored, Sheet updated.
+
+Test 3: Paid customer reply
+Expected: No reminder sent; case moves to reconciliation.
+
+Test 4: Dispute reply
+Expected: No reminder sent; case moves to escalation.
+
+Test 5: Missing customer email
+Expected: No email draft/send; case moves to missing information.
+
+Test 6: Gmail send error
+Expected: Error logged; retry scheduled; no duplicate email.
+
+Test 7: Sheet update failure after successful send
+Expected: Sheet update retried; Gmail send not repeated.
+
+Test 8: New payment mail before send
+Expected: Pending draft canceled; case dynamically replans to reconciliation.
+
+Test 9: Audit trail
+Expected: Every action has time, actor, state transition, result, and external ID/error.
+
+
+31. LIMITATIONS OF MVP
+
+- It does not automatically reconcile bank statements or make payments.
+- It does not replace a real accounting/ERP system.
+- It only sends communications after approval.
+- LLM output is advisory and constrained, not authoritative.
+- Gmail inbox parsing must be tested against real business wording before production use.
+- Production implementation requires authentication, encryption, role permissions, data retention policy, monitoring, and legal/compliance review.
+
+
+32. FUTURE IMPROVEMENTS
+
+- Google Drive invoice attachment retrieval.
+- OCR for scanned invoices or payment receipts.
+- WhatsApp/SMS reminder channel after separate approval/policy design.
+- Integration with Tally, Zoho Books, QuickBooks, Razorpay, or bank reconciliation systems.
+- Role-based approval limits.
+- Automatic Gmail push notifications/webhooks instead of scheduled polling.
+- PostgreSQL and background worker queue for multi-user deployment.
+- Policy-document search for approved collection language.
+- Analytics: collection time, payment promise accuracy, overdue trend, recovery rate.
+
+
+33. PRESENTATION SCRIPT
+
+Start with problem:
+"A finance employee wastes time comparing a spreadsheet with Gmail and manually chasing customers. Important cases can be missed, and there is no clear audit trail."
+
+Show dashboard:
+"The system found six overdue invoices and automatically prioritized them."
+
+Show normal case:
+"For INV-1001, it checked Gmail, found no payment or dispute, prepared a draft, and is waiting for manager approval."
+
+Show approval:
+"The manager can edit, approve, reject, or escalate. The system cannot send without approval."
+
+Show send:
+"After approval it performs a final Gmail re-check, sends one email, saves its Gmail ID, updates the Sheet, and closes the workflow."
+
+Show exception:
+"For INV-1003, Gmail shows payment confirmation, so it prevents an unnecessary reminder and sends the case for reconciliation instead."
+
+Show audit:
+"Every action is visible with timestamps, inputs, results, and external references."
+
+Finish:
+"This is intelligent workflow automation: it gathers information, plans actions, handles exceptions, involves a human at the right point, executes safely, and maintains traceability."
+
+
+34. FINAL RECOMMENDATION
+
+Build this project using:
+
+- Python
+- Streamlit
+- Gmail API
+- Google Sheets API
+- SQLite
+- Pydantic
+- Deterministic workflow state machine
+- Optional Ollama local AI
+
+Do not start with LangChain, vector databases, multi-agent systems, WhatsApp, OCR, Drive, or cloud deployment. They increase complexity without improving the core demo.
+
+First make this exact pipeline work reliably:
+
+Google Sheet -> Gmail evidence -> Rules -> Draft -> Human approval -> Gmail send -> Sheet update -> Audit trail
+
+This gives a complete, free, technically strong, judge-friendly prototype that directly satisfies every stated challenge requirement.
