@@ -23,6 +23,8 @@ uvicorn main:app --reload
 
 Open <http://127.0.0.1:8000>. Click **Run workflow cycle**, review or edit the generated drafts, then approve/reject. In the default dry-run mode, approval records a simulated message ID and marks the invoice `FOLLOWED_UP`; no email leaves the machine. The dashboard shows invoice state, priority, draft preview, failure/block statuses, and audit events.
 
+The dashboard is served from `static/index.html` and uses Alpine.js, Tailwind CSS, Inter, and Material Symbols from public CDNs. A browser needs internet access to load these styling/runtime assets; the FastAPI JSON endpoints remain same-origin.
+
 ## Gmail OAuth
 
 Live sending is opt-in. Configure an OAuth 2.0 client in Google Cloud with the Gmail API enabled and a refresh token authorized for `https://www.googleapis.com/auth/gmail.send`. Put the values in `.env`:
